@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Inläsning – Smarta Lås</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--tx:#14181f;--mut:#6b7280;--ac:#0b5fff;--bad:#d92d20;--ok:#12b76a;--bd:#e3e6ea}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1115;--card:#1a1d23;--tx:#eef0f3;--mut:#9aa3af;--bd:#2a2f38}}
+*{box-sizing:border-box}
+body{margin:0;font:16px system-ui,sans-serif;background:var(--bg);color:var(--tx);padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.wrap{max-width:900px;margin:0 auto;padding:12px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:12px}
+h1{font-size:20px;margin:4px 0 12px}
+button,input{font:inherit}
+button{background:var(--ac);color:#fff;border:0;border-radius:10px;padding:11px 14px;cursor:pointer}
+button.sec{background:transparent;color:var(--tx);border:1px solid var(--bd)}
+button.bad{background:var(--bad)}
+button.on{background:var(--ok)}
+button:disabled{opacity:.5}
+input[type=text]{width:100%;padding:11px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.row>*{flex:1}.row>.fit{flex:0 0 auto}
+.tabs{display:flex;gap:8px;margin-bottom:12px}.tabs button{flex:1}
+.hide{display:none!important}
+#vwrap{position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:1/1}
+video{width:100%;height:100%;object-fit:cover}
+#box{position:absolute;inset:25%;border:3px solid #fff;border-radius:10px;box-shadow:0 0 0 999px rgba(0,0,0,.35);pointer-events:none}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:9px 6px;border-bottom:1px solid var(--bd);font-size:15px}
+td.s{font-variant-numeric:tabular-nums;font-weight:600}
+.mut{color:var(--mut);font-size:13px}
+.dup{color:var(--bad);font-size:12px;font-weight:600}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#14181f;color:#fff;padding:11px 16px;border-radius:10px;z-index:9;max-width:90%}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:10;padding:20px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- Startvy: skapa/gå med -->
+<div id="home" class="hide">
+  <h1>Inläsning – Smarta Lås</h1>
+  <div class="card">
+    <div class="mut">Ditt namn (visas i listan)</div>
+    <input type="text" id="name" placeholder="T.ex. Anna">
+  </div>
+  <div class="card">
+    <b>Nytt projekt</b>
+    <div class="row"><input type="text" id="pname" placeholder="Projektnamn, t.ex. Hus A"><button class="fit" id="create">Skapa</button></div>
+  </div>
+  <div class="card">
+    <b>Gå med via kod</b>
+    <div class="row"><input type="text" id="jcode" placeholder="Kod från kollega" autocapitalize="characters"><button class="fit" id="join">Gå med</button></div>
+  </div>
+</div>
+
+<!-- Projektvy -->
+<div id="proj" class="hide">
+  <div class="card">
+    <div class="row">
+      <div><b id="ptitle"></b><div class="mut">Delningskod: <b id="pcode" style="font-size:18px;letter-spacing:2px"></b> <a href="#" id="copy">kopiera</a></div></div>
+      <button class="sec fit" id="leave">Byt projekt</button>
+    </div>
+  </div>
+  <div class="tabs"><button id="tScan">Skanna</button><button id="tList" class="sec">Lista (<span id="cnt">0</span>)</button></div>
+
+  <div id="vScan">
+    <div class="row"><button id="mQR">QR-kod</button><button id="mOCR" class="sec">Siffror (OCR)</button></div>
+    <div id="vwrap"><video id="vid" playsinline muted></video><div id="box"></div></div>
+    <div class="row">
+      <button class="sec" id="torch">🔦 Ficklampa</button>
+      <button class="sec" id="photo">📷 Ta foto</button>
+      <button id="read" class="hide">Läs siffror</button>
+    </div>
+    <div class="row" id="zrow"><span class="fit mut">Zoom</span><input type="range" id="zoom" min="1" max="1" step="0.1"></div>
+    <div id="hint" class="mut"></div>
+    <div class="card" style="margin-top:12px">
+      <b>Skriv in / korrigera</b>
+      <div class="row"><input type="text" id="manual" inputmode="numeric" placeholder="Serienummer"><button class="fit" id="addm">Spara</button></div>
+    </div>
+    <input type="file" id="file" accept="image/*" capture="environment" class="hide">
+  </div>
+
+  <div id="vList" class="hide">
+    <div class="row">
+      <button id="xlsx">Exportera Excel</button>
+      <button class="sec" id="csv">Exportera CSV</button>
+      <button class="bad fit" id="del" disabled>Ta bort (0)</button>
+    </div>
+    <div class="card" style="overflow-x:auto">
+      <table><thead><tr><th><input type="checkbox" id="all"></th><th>Serienummer</th><th>Datum &amp; tid</th><th>Av</th></tr></thead><tbody id="rows"></tbody></table>
+      <div id="empty" class="mut" style="padding:10px">Inga koder ännu.</div>
+    </div>
+  </div>
+</div>
+</div>
+<div id="toast" class="hide"></div>
+<div id="modal" class="hide"><div class="card" style="max-width:340px"><b id="mt"></b><div class="row"><button class="sec" id="mno">Avbryt</button><button class="bad" id="myes">Ja, ta bort</button></div></div></div>
+
+<script>
+// ====== FYLL I DINA UPPGIFTER FRÅN SUPABASE (Project Settings > API) ======
+const SUPABASE_URL = "https://hnjlebibxnkgxubtthff.supabase.co";
+const SUPABASE_KEY = "sb_publishable_xxxxxxxx";
+// ==========================================================================
+
+const $ = id => document.getElementById(id);
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const S = { code: localStorage.getItem("code"), pname: localStorage.getItem("pname"), me: localStorage.getItem("me") || "", scans: [], sel: new Set(), mode: "qr", stream: null, track: null, torchOn: false, last: "", lastT: 0, busy: false, ch: null };
+
+function toast(t, ms = 2200) { const e = $("toast"); e.textContent = t; e.classList.remove("hide"); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.add("hide"), ms); }
+const fmt = d => new Date(d).toLocaleString("sv-SE");
+const genCode = () => { const a = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; return Array.from({ length: 6 }, () => a[Math.floor(Math.random() * a.length)]).join(""); };
+
+// ---------- Projekt ----------
+function show() {
+  $("home").classList.toggle("hide", !!S.code);
+  $("proj").classList.toggle("hide", !S.code);
+  if (S.code) { $("ptitle").textContent = S.pname; $("pcode").textContent = S.code; load(); subscribe(); startCam(); }
+  else { stopCam(); $("name").value = S.me; }
+}
+function needName() { S.me = $("name").value.trim(); if (!S.me) { toast("Skriv ditt namn först"); return false; } localStorage.setItem("me", S.me); return true; }
+function open_(code, name) { S.code = code; S.pname = name; localStorage.setItem("code", code); localStorage.setItem("pname", name); show(); }
+$("create").onclick = async () => {
+  if (!needName()) return; const name = $("pname").value.trim(); if (!name) return toast("Skriv ett projektnamn");
+  const code = genCode(); const { error } = await db.from("projects").insert({ code, name });
+  if (error) return toast("Fel: " + error.message, 4000); open_(code, name);
+};
+$("join").onclick = async () => {
+  if (!needName()) return; const code = $("jcode").value.trim().toUpperCase();
+  const { data } = await db.from("projects").select("*").eq("code", code).maybeSingle();
+  if (!data) return toast("Hittar ingen sådan kod"); open_(data.code, data.name);
+};
+$("leave").onclick = () => { localStorage.removeItem("code"); localStorage.removeItem("pname"); S.code = null; if (S.ch) db.removeChannel(S.ch); show(); };
+$("copy").onclick = e => { e.preventDefault(); navigator.clipboard?.writeText(S.code); toast("Koden kopierad"); };
+
+// ---------- Data ----------
+async function load() {
+  const { data, error } = await db.from("scans").select("*").eq("project_code", S.code).order("scanned_at", { ascending: false });
+  if (error) return toast("Kunde inte hämta: " + error.message, 4000);
+  S.scans = data; S.sel = new Set([...S.sel].filter(id => data.some(r => r.id === id))); render();
+}
+function subscribe() {
+  if (S.ch) db.removeChannel(S.ch);
+  S.ch = db.channel("scans-" + S.code).on("postgres_changes", { event: "*", schema: "public", table: "scans" }, () => load()).subscribe();
+}
+function render() {
+  $("cnt").textContent = S.scans.length; $("empty").classList.toggle("hide", S.scans.length > 0);
+  const counts = {}; S.scans.forEach(r => counts[r.serial] = (counts[r.serial] || 0) + 1);
+  const tb = $("rows"); tb.innerHTML = "";
+  S.scans.forEach(r => {
+    const tr = document.createElement("tr");
+    const c = document.createElement("td"); const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = S.sel.has(r.id);
+    cb.onchange = () => { cb.checked ? S.sel.add(r.id) : S.sel.delete(r.id); upd(); }; c.appendChild(cb);
+    const s = document.createElement("td"); s.className = "s"; s.textContent = r.serial;
+    if (counts[r.serial] > 1) { const d = document.createElement("div"); d.className = "dup"; d.textContent = "Dubblett"; s.appendChild(d); }
+    const t = document.createElement("td"); t.textContent = fmt(r.scanned_at);
+    const b = document.createElement("td"); b.textContent = r.scanned_by || ""; b.className = "mut";
+    tr.append(c, s, t, b); tb.appendChild(tr);
+  }); upd();
+}
+function upd() { $("del").textContent = `Ta bort (${S.sel.size})`; $("del").disabled = !S.sel.size; $("all").checked = S.scans.length > 0 && S.sel.size === S.scans.length; }
+$("all").onchange = e => { S.sel = e.target.checked ? new Set(S.scans.map(r => r.id)) : new Set(); render(); };
+
+async function save(serial, method) {
+  serial = String(serial).trim(); if (!serial) return;
+  const dup = S.scans.some(r => r.serial === serial);
+  const { error } = await db.from("scans").insert({ project_code: S.code, serial, method, scanned_by: S.me });
+  if (error) return toast("Fel: " + error.message, 4000);
+  navigator.vibrate?.(80); toast(dup ? `⚠ ${serial} fanns redan – sparad ändå` : `✓ ${serial}`, dup ? 3500 : 1800); load();
+}
+
+// ---------- Radera (tvåsteg: markera, sedan bekräfta) ----------
+$("del").onclick = () => { $("mt").textContent = `Ta bort ${S.sel.size} kod(er)? Det går inte att ångra.`; $("modal").classList.remove("hide"); };
+$("mno").onclick = () => $("modal").classList.add("hide");
+$("myes").onclick = async () => {
+  $("modal").classList.add("hide");
+  const { error } = await db.from("scans").delete().in("id", [...S.sel]);
+  if (error) return toast("Fel: " + error.message, 4000); S.sel.clear(); toast("Borttaget"); load();
+};
+
+// ---------- Export ----------
+function rows() { return [["Serienummer", "Datum och tid", "Skannad av", "Metod"], ...[...S.scans].reverse().map(r => [String(r.serial), fmt(r.scanned_at), r.scanned_by || "", r.method || ""])]; }
+const fname = ext => `${S.pname.replace(/[^\w\-åäöÅÄÖ ]/g, "")}_${new Date().toISOString().slice(0, 10)}.${ext}`;
+$("xlsx").onclick = () => { const ws = XLSX.utils.aoa_to_sheet(rows()); ws["!cols"] = [{ wch: 20 }, { wch: 20 }, { wch: 16 }, { wch: 8 }]; const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Lås"); XLSX.writeFile(wb, fname("xlsx")); };
+$("csv").onclick = () => {
+  const csv = "\ufeff" + rows().map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" })); a.download = fname("csv"); a.click();
+};
+
+// ---------- Flikar & lägen ----------
+function tab(n) { $("vScan").classList.toggle("hide", n !== "scan"); $("vList").classList.toggle("hide", n !== "list"); $("tScan").className = n === "scan" ? "" : "sec"; $("tList").className = n === "list" ? "" : "sec"; }
+$("tScan").onclick = () => tab("scan"); $("tList").onclick = () => tab("list");
+function mode(m) {
+  S.mode = m; $("mQR").className = m === "qr" ? "" : "sec"; $("mOCR").className = m === "ocr" ? "" : "sec"; $("read").classList.toggle("hide", m !== "ocr");
+  $("hint").textContent = m === "qr" ? "Håll QR-koden inom rutan. Zooma in vid behov. Det läses automatiskt." : "Rikta rutan mot siffrorna och tryck Läs siffror. Kontrollera texten innan du sparar.";
+}
+$("mQR").onclick = () => mode("qr"); $("mOCR").onclick = () => mode("ocr"); mode("qr");
+
+// ---------- Kamera ----------
+async function startCam() {
+  if (S.stream) return;
+  try {
+    S.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 3840 }, height: { ideal: 2160 } }, audio: false });
+  } catch (e) { return toast("Kameran kunde inte startas: " + e.message, 4000); }
+  $("vid").srcObject = S.stream; await $("vid").play().catch(() => { });
+  S.track = S.stream.getVideoTracks()[0]; const cap = S.track.getCapabilities ? S.track.getCapabilities() : {};
+  $("torch").classList.toggle("hide", !cap.torch);
+  if (cap.zoom) { const z = $("zoom"); z.min = cap.zoom.min; z.max = cap.zoom.max; z.step = cap.zoom.step || 0.1; z.value = cap.zoom.min; $("zrow").classList.remove("hide"); } else $("zrow").classList.add("hide");
+  if (cap.focusMode && cap.focusMode.includes("continuous")) S.track.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => { });
+  loop();
+}
+function stopCam() { S.stream?.getTracks().forEach(t => t.stop()); S.stream = null; S.track = null; }
+$("zoom").oninput = e => S.track?.applyConstraints({ advanced: [{ zoom: +e.target.value }] }).catch(() => { });
+$("torch").onclick = async () => { S.torchOn = !S.torchOn; try { await S.track.applyConstraints({ advanced: [{ torch: S.torchOn }] }); $("torch").className = S.torchOn ? "on" : "sec"; } catch { toast("Ficklampa stöds inte"); } };
+document.addEventListener("visibilitychange", () => { if (document.hidden) stopCam(); else if (S.code) startCam(); });
+
+// ---------- Avläsning ----------
+const detector = ("BarcodeDetector" in window) ? new BarcodeDetector({ formats: ["qr_code"] }) : null;
+async function decodeQR(src, w, h) {
+  const cv = document.createElement("canvas"); cv.width = w; cv.height = h; const cx = cv.getContext("2d", { willReadFrequently: true }); cx.drawImage(src, 0, 0, w, h);
+  if (detector) { try { const r = await detector.detect(cv); if (r.length) return r[0].rawValue; } catch { } }
+  // Beskuren mitt + hel bild med jsQR
+  for (const [x, y, ww, hh] of [[.2, .2, .6, .6], [0, 0, 1, 1]]) {
+    const d = cx.getImageData(x * w, y * h, ww * w, hh * h);
+    const r = jsQR(d.data, d.width, d.height, { inversionAttempts: "attemptBoth" }); if (r) return r.data;
+  } return null;
+}
+async function loop() {
+  const v = $("vid");
+  while (S.stream) {
+    await new Promise(r => setTimeout(r, 160));
+    if (S.mode !== "qr" || S.busy || $("vScan").classList.contains("hide") || !v.videoWidth) continue;
+    S.busy = true;
+    try {
+      const val = await decodeQR(v, v.videoWidth, v.videoHeight);
+      if (val) { const t = Date.now(); if (val !== S.last || t - S.lastT > 4000) { S.last = val; S.lastT = t; await save(val, "QR"); } else S.lastT = t; }
+    } finally { S.busy = false; }
+  }
+}
+async function ocr(canvas) {
+  toast("Läser siffror…", 8000);
+  const cx = canvas.getContext("2d"), d = cx.getImageData(0, 0, canvas.width, canvas.height);
+  for (let i = 0; i < d.data.length; i += 4) { const g = d.data[i] * .3 + d.data[i + 1] * .59 + d.data[i + 2] * .11; const c = Math.max(0, Math.min(255, (g - 128) * 1.6 + 128)); d.data[i] = d.data[i + 1] = d.data[i + 2] = c; }
+  cx.putImageData(d, 0, 0);
+  const { data } = await Tesseract.recognize(canvas, "eng", { tessedit_char_whitelist: "0123456789", tessedit_pageseg_mode: "7" });
+  const txt = data.text.replace(/\D/g, ""); $("manual").value = txt; $("toast").classList.add("hide");
+  toast(txt ? "Kontrollera siffrorna och tryck Spara" : "Hittade inga siffror – försök igen", 3500);
+}
+$("read").onclick = async () => {
+  const v = $("vid"); if (!v.videoWidth) return; const w = v.videoWidth, h = v.videoHeight;
+  const cv = document.createElement("canvas"); cv.width = w * .5; cv.height = h * .5; cv.getContext("2d").drawImage(v, w * .25, h * .25, w * .5, h * .5, 0, 0, cv.width, cv.height); await ocr(cv);
+};
+// Ta foto med telefonens egen kamera (iPhone: ger tillgång till blixt/ficklampa)
+$("photo").onclick = () => $("file").click();
+$("file").onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  const img = await createImageBitmap(f); const sc = Math.min(1, 3000 / Math.max(img.width, img.height));
+  const w = Math.round(img.width * sc), h = Math.round(img.height * sc);
+  if (S.mode === "qr") { const val = await decodeQR(img, w, h); val ? save(val, "QR (foto)") : toast("Hittade ingen QR-kod i fotot", 3000); }
+  else { const cv = document.createElement("canvas"); cv.width = w; cv.height = h; cv.getContext("2d").drawImage(img, 0, 0, w, h); await ocr(cv); }
+};
+$("addm").onclick = () => { const v = $("manual").value.trim(); if (v) { save(v, "Manuell/OCR"); $("manual").value = ""; } };
+
+show();
+</script>
+</body>
+</html>
