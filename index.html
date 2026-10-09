@@ -130,7 +130,7 @@ h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
 
   <div id="vPal" class="hide">
     <div class="card"><h4>Pallens storlek</h4>
-      <div class="mut">Antal lås längs X-axeln, längs Y-axeln och antal våningar. Platserna fylls i skanningsordning: först i X-led, sedan Y-led, sedan nästa våning. Gäller hela projektet.</div>
+      <div class="mut">Antal lås längs X-axeln, längs Y-axeln och antal våningar. Platserna fylls i skanningsordning: du börjar på X 1 och lastar utmed Y, därefter nästa X-position, och sist nästa våning. Gäller hela projektet.</div>
       <div class="row"><input type="text" id="dx" inputmode="numeric" placeholder="X"><input type="text" id="dy" inputmode="numeric" placeholder="Y"><input type="text" id="dz" inputmode="numeric" placeholder="Våningar"></div>
       <button id="sdims">Spara pallstorlek</button></div>
     <div class="card"><h4>Sök lås</h4>
@@ -154,14 +154,14 @@ h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
       <button class="bad fit" id="del" disabled>Ta bort (0)</button>
     </div>
     <div class="card" style="overflow-x:auto">
-      <table><thead><tr><th><input type="checkbox" id="all"></th><th>Serienummer</th><th>Plats</th><th>Datum &amp; tid</th><th>Av</th></tr></thead><tbody id="rows"></tbody></table>
+      <table><thead><tr><th><input type="checkbox" id="all"></th><th>Serienummer</th><th>Plats</th><th>Datum &amp; tid</th><th>Av</th><th></th></tr></thead><tbody id="rows"></tbody></table>
       <div id="empty" class="mut" style="padding:10px">Inga koder ännu.</div>
     </div>
   </div>
 </div>
 </div>
 <div id="toast" class="hide"></div>
-<div id="modal" class="hide"><div class="dlg" id="dlg"><div class="dh" id="dh"></div><div class="db"><div id="mt"></div><input type="text" id="mval" class="hide"><div class="row"><button class="sec" id="mno">Avbryt</button><button id="myes"></button></div></div></div></div>
+<div id="modal" class="hide"><div class="dlg" id="dlg"><div class="dh" id="dh"></div><div class="db"><div id="mt"></div><input type="text" id="mval" class="hide"><div class="row hide" id="malts"></div><div class="row"><button class="sec" id="mno">Avbryt</button><button id="myes"></button></div></div></div></div>
 
 <script>
 // ====== FYLL I DINA UPPGIFTER FRÅN SUPABASE (Project Settings > API) ======
@@ -205,7 +205,7 @@ $("copy").onclick = e => { e.preventDefault(); navigator.clipboard?.writeText(S.
 const parseDims = t => { const [x, y, z] = String(t || "").split(",").map(Number); return x >= 1 && y >= 1 && z >= 1 ? { x, y, z } : null; };
 const hint = e => /slot|dims/i.test(e.message) ? "Databasen saknar nya kolumner – kör uppdateringsskriptet i Supabase (se instruktionerna)." : "Fel: " + e.message;
 const esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-function pos(slot) { if (slot == null || !S.dims) return null; const { x: X, y: Y, z: Z } = S.dims, cap = X * Y * Z, r = slot % cap; return { p: Math.floor(slot / cap) + 1, x: r % X + 1, y: Math.floor(r / X) % Y + 1, z: Math.floor(r / (X * Y)) + 1 }; }
+function pos(slot) { if (slot == null || !S.dims) return null; const { x: X, y: Y, z: Z } = S.dims, cap = X * Y * Z, r = slot % cap; return { p: Math.floor(slot / cap) + 1, x: Math.floor(r / Y) % X + 1, y: r % Y + 1, z: Math.floor(r / (X * Y)) + 1 }; }
 const posTxt = p => p ? `P${p.p} X${p.x} Y${p.y} V${p.z}` : "";
 async function load() {
   const [{ data, error }, { data: pj }] = await Promise.all([db.from("scans").select("*").eq("project_code", S.code).order("scanned_at", { ascending: false }), db.from("projects").select("dims").eq("code", S.code).maybeSingle()]);
@@ -232,19 +232,29 @@ function render() {
     const t = document.createElement("td"); t.textContent = fmt(r.scanned_at);
     const b = document.createElement("td"); b.textContent = r.scanned_by || ""; b.className = "mut";
     const pz = document.createElement("td"); pz.className = "mut"; pz.textContent = posTxt(pos(r.slot));
-    tr.append(c, s, pz, t, b); tb.appendChild(tr);
+    const ed = document.createElement("td"), eb = document.createElement("button"); eb.className = "sec"; eb.style.padding = "6px 9px"; eb.setAttribute("aria-label", "Redigera " + r.serial);
+    eb.innerHTML = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>'; eb.onclick = () => editScan(r); ed.appendChild(eb);
+    tr.append(c, s, pz, t, b, ed); tb.appendChild(tr);
   }); upd(); renderPall();
 }
 function upd() { $("del").textContent = `Ta bort (${S.sel.size})`; $("del").disabled = !S.sel.size; $("all").checked = S.scans.length > 0 && S.sel.size === S.scans.length; }
 $("all").onchange = e => { S.sel = e.target.checked ? new Set(S.scans.map(r => r.id)) : new Set(); render(); };
 
-async function save(serial, method) {
+const typLen = () => { // vanligaste längden på redan sparade serienummer (0 = okänt)
+  const c = {}; let n = 0; S.scans.forEach(r => { if (/^\d+$/.test(r.serial)) { c[r.serial.length] = (c[r.serial.length] || 0) + 1; n++; } });
+  if (n < 3) return 0; const [l, k] = Object.entries(c).sort((p, q) => q[1] - p[1])[0]; return k / n >= .6 ? +l : 0;
+};
+async function save(serial, method, o = {}) {
   serial = String(serial).trim(); if (!serial) return;
-  const bad = over(serial), dup = S.scans.some(r => r.serial === serial);
-  const v = await dialog(bad
-    ? { err: 1, title: "Varning: över gränsen", text: `Serienumret börjar på eller är större än ${S.limit}. Vill du verkligen spara det?`, yes: "Spara ändå", value: serial }
-    : { title: "Kontrollera serienumret", text: dup ? "Obs: serienumret finns redan i listan." : "Stämmer serienumret? Rätta det vid behov innan du sparar.", yes: "Spara", value: serial });
-  if (!v) return toast("Inte sparad", 1500);
+  const bad = over(serial), dup = S.scans.some(r => r.serial === serial), L = typLen(), odd = L && /^\d+$/.test(serial) && serial.length !== L;
+  const notes = [dup && "Obs: serienumret finns redan i listan.", odd && `Obs: övriga lås har ${L} siffror, det här har ${serial.length}. Saknas någon siffra?`].filter(Boolean).join(" ");
+  let v = serial;
+  if (!(o.direct && !bad && !dup && !odd)) { // en bekräftelse räcker; hoppas över bara för egen inskrivning utan varningar
+    v = await dialog(bad
+      ? { err: 1, title: "Varning: över gränsen", text: `Serienumret börjar på eller är större än ${S.limit}. Vill du verkligen spara det? ${notes}`.trim(), yes: "Spara ändå", value: serial, alts: o.alts }
+      : { title: "Kontrollera serienumret", text: notes || "Stämmer serienumret? Rätta det vid behov innan du sparar.", yes: "Spara", value: serial, alts: o.alts });
+    if (!v) return toast("Inte sparad", 1500);
+  }
   serial = v; let slot = null;
   if (S.dims) { const used = new Set(S.scans.map(r => r.slot).filter(n => n != null)); slot = 0; while (used.has(slot)) slot++; }
   let error;
@@ -255,6 +265,15 @@ async function save(serial, method) {
   if (error) return toast(hint(error), 5000);
   navigator.vibrate?.(80); const p = pos(slot);
   toast(p ? `Sparad. Placera på pall ${p.p}, X ${p.x}, Y ${p.y}, plan ${p.z}` : `Sparad: ${serial}`, 4000); load();
+}
+
+// ---------- Redigera ett serienummer ----------
+async function editScan(r) {
+  const v = await dialog({ title: "Redigera serienummer", text: "Rätta serienumret och tryck Spara.", yes: "Spara ändring", value: r.serial });
+  if (v == null) return; if (!v) return toast("Serienumret kan inte vara tomt", 2500); if (v === r.serial) return toast("Ingen ändring", 1500);
+  if (S.scans.some(x => x.id !== r.id && x.serial === v) && !(await dialog({ err: 1, title: "Dubblett", text: `${v} finns redan i listan. Spara ändå?`, yes: "Spara ändå" }))) return;
+  const { error } = await db.from("scans").update({ serial: v }).eq("id", r.id); if (error) return toast(hint(error), 5000);
+  toast("Serienumret ändrat", 2000); load();
 }
 
 // ---------- Radera (tvåsteg: markera, sedan bekräfta) ----------
@@ -282,7 +301,7 @@ function tab(n) { for (const [k, v] of [["scan", "vScan"], ["list", "vList"], ["
 $("tScan").onclick = () => tab("scan"); $("tList").onclick = () => tab("list"); $("tPal").onclick = () => tab("pal");
 function mode(m) {
   S.mode = m; $("mQR").className = m === "qr" ? "" : "sec"; $("mOCR").className = m === "ocr" ? "" : "sec"; $("read").classList.toggle("hide", m !== "ocr"); $("readqr").classList.toggle("hide", m !== "qr"); $("stat").textContent = m === "qr" ? "QR: söker automatiskt" : "OCR: tryck Läs siffror";
-  $("hint").textContent = m === "qr" ? "Håll QR-koden inom rutan på 10–20 cm avstånd och vänta tills bilden är skarp. Zooma vid behov. Det läses automatiskt, eller tryck Läs QR." : "Rikta rutan mot siffrorna och tryck Läs siffror. Kontrollera texten innan du sparar.";
+  $("hint").textContent = m === "qr" ? "Håll QR-koden inom rutan på 10–20 cm avstånd och vänta tills bilden är skarp. Zooma vid behov. Det läses automatiskt, eller tryck Läs QR." : "Rikta rutan mot siffrorna, vinkla lite för att slippa blänk och tryck Läs siffror. Tre bilder tas och jämförs, sedan bekräftar du en gång.";
 }
 $("mQR").onclick = () => mode("qr"); $("mOCR").onclick = () => mode("ocr"); mode("qr");
 
@@ -395,21 +414,41 @@ async function ocrCloud(canvas) { // OCR.space (Engine 2)
   });
   return [...new Set(out)];
 }
-async function ocr(canvas) {
-  toast("Läser siffror…", 30000); $("cands").innerHTML = ""; let list = [];
+function pad(cv) { // marginal runt bilden så att kantsiffror (t.ex. sista) inte tappas
+  const p = Math.round(Math.max(cv.width, cv.height) * .06), o = document.createElement("canvas"); o.width = cv.width + 2 * p; o.height = cv.height + 2 * p;
+  const g = o.getContext("2d"), cx = cv.getContext("2d", { willReadFrequently: true }); let r = 0, gg = 0, bb = 0;
+  for (const [x, y] of [[0, 0], [cv.width - 1, 0], [0, cv.height - 1], [cv.width - 1, cv.height - 1]]) { const d = cx.getImageData(x, y, 1, 1).data; r += d[0]; gg += d[1]; bb += d[2]; }
+  g.fillStyle = `rgb(${r >> 2},${gg >> 2},${bb >> 2})`; g.fillRect(0, 0, o.width, o.height); g.drawImage(cv, p, p); return o;
+}
+function grabBox(v) { // hela det synliga rutområdet plus marginal (synliga bilden är en mittenkvadrat)
+  const w = v.videoWidth, h = v.videoHeight, s = Math.min(w, h), ox = (w - s) / 2, oy = (h - s) / 2, m = .16, cw = s * (1 - 2 * m);
+  const cv = document.createElement("canvas"); cv.width = cv.height = Math.round(cw); cv.getContext("2d").drawImage(v, ox + s * m, oy + s * m, cw, cw, 0, 0, cv.width, cv.height); return cv;
+}
+function rankOcr(votes) { // rätt längd först, sedan flest röster (korta fragment hjälper längre kandidater som innehåller dem)
+  const L = typLen(), ks = Object.keys(votes), sc = m => votes[m] + ks.reduce((a, n) => a + (n !== m && m.includes(n) ? votes[n] : 0), 0);
+  return ks.sort((a, b) => ((L && b.length === L) - (L && a.length === L)) || sc(b) - sc(a) || b.length - a.length);
+}
+async function ocr(cvs) {
+  toast("Läser siffror…", 30000); $("cands").innerHTML = "";
+  const votes = {}, add = (n, w) => votes[n] = (votes[n] || 0) + w, L = typLen(), okLen = () => Object.keys(votes).length && (!L || Object.keys(votes).some(n => n.length === L));
+  if (OCR_SPACE_KEY) {
+    const rs = await Promise.allSettled(cvs.map(c => ocrCloud(pad(c))));
+    rs.forEach(r => r.status === "fulfilled" ? r.value.forEach(n => add(n, 2)) : console.warn(r.reason));
+    if (rs.every(r => r.status === "rejected")) toast("Molnläsning misslyckades – provar lokalt…", 2500);
+  }
   try {
-    if (OCR_SPACE_KEY) { try { list = await ocrCloud(canvas); } catch (e) { console.warn(e); toast("Molnläsning misslyckades – provar lokalt…", 2500); } }
-    if (!list.length) list = await ocrLocal(canvas);
-  } catch (e) { return toast("OCR-fel: " + e.message, 4000); }
+    const mid = Math.floor(cvs.length / 2), order = [cvs[mid], ...cvs.filter((_, i) => i !== mid)];
+    for (const c of order) { if (okLen()) break; (await ocrLocal(pad(c))).forEach(n => add(n, 1)); }
+  } catch (e) { $("toast").classList.add("hide"); return toast("OCR-fel: " + e.message, 4000); }
   $("toast").classList.add("hide");
-  if (!list.length) return toast("Hittade inga siffror – zooma/lys och försök igen", 3500);
-  $("manual").value = list[0];
-  list.slice(0, 6).forEach(n => { const b = document.createElement("button"); b.className = "sec"; b.textContent = n; b.onclick = () => { save(n, "OCR"); b.remove(); }; $("cands").appendChild(b); });
-  toast(list.length > 1 ? "Flera nummer hittades – tryck på rätt för att spara" : "Kontrollera siffrorna och tryck Spara", 4000);
+  const list = rankOcr(votes);
+  if (!list.length) return toast("Hittade inga siffror – zooma/lys, vinkla bort blänk och försök igen", 4000);
+  await save(list[0], "OCR", { alts: list.slice(1, 5) }); // en enda bekräftelse, med andra tolkningar som knappar
 }
 $("read").onclick = async () => {
-  const v = $("vid"); if (!v.videoWidth) return; const w = v.videoWidth, h = v.videoHeight;
-  const cv = document.createElement("canvas"); cv.width = w * .5; cv.height = h * .5; cv.getContext("2d").drawImage(v, w * .25, h * .25, w * .5, h * .5, 0, 0, cv.width, cv.height); await ocr(cv);
+  const v = $("vid"); if (!v.videoWidth || S.busy) return; S.busy = true;
+  try { const fr = []; for (let i = 0; i < 3; i++) { fr.push(grabBox(v)); if (i < 2) await new Promise(r => setTimeout(r, 200)); } await ocr(fr); }
+  finally { S.busy = false; }
 };
 // Ta foto med telefonens egen kamera (iPhone: ger tillgång till blixt/ficklampa)
 $("photo").onclick = () => $("file").click();
@@ -418,9 +457,9 @@ $("file").onchange = async e => {
   const img = await createImageBitmap(f); const sc = Math.min(1, 3000 / Math.max(img.width, img.height));
   const w = Math.round(img.width * sc), h = Math.round(img.height * sc);
   if (S.mode === "qr") { const val = await decodeQR(img, w, h, true); val ? save(val, "QR (foto)") : toast("Hittade ingen QR-kod i fotot", 3000); }
-  else { const cv = document.createElement("canvas"); cv.width = w; cv.height = h; cv.getContext("2d").drawImage(img, 0, 0, w, h); await ocr(cv); }
+  else { const cv = document.createElement("canvas"); cv.width = w; cv.height = h; cv.getContext("2d").drawImage(img, 0, 0, w, h); await ocr([cv]); }
 };
-$("addm").onclick = () => { const v = $("manual").value.trim(); if (v) { save(v, "Manuell/OCR"); $("manual").value = ""; } };
+$("addm").onclick = () => { const v = $("manual").value.trim(); if (v) { save(v, "Manuell", { direct: true }); $("manual").value = ""; } };
 
 $("readqr").onclick = async () => {
   const v = $("vid"); if (!v.videoWidth || S.busy) return; S.busy = true; toast("Söker QR-kod…", 20000);
@@ -436,7 +475,9 @@ function dialog(o) {
   return new Promise(res => {
     const v = $("mval"), e = !!o.err; $("dlg").className = "dlg" + (e ? " err" : ""); $("dh").className = "dh" + (e ? " err" : "");
     $("dh").innerHTML = `@ICO@<span></span>`.replace("@ICO@", e ? `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>` : `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>`); $("dh").lastChild.textContent = o.title;
-    $("mt").textContent = o.text || ""; v.classList.toggle("hide", o.value == null); if (o.value != null) { v.value = o.value; setTimeout(() => v.focus(), 60); }
+    $("mt").textContent = o.text || "";
+    const al = $("malts"); al.innerHTML = ""; al.classList.toggle("hide", !(o.alts && o.alts.length));
+    (o.alts || []).forEach(n => { const b = document.createElement("button"); b.className = "sec"; b.textContent = n; b.onclick = () => { v.value = n; }; al.appendChild(b); }); v.classList.toggle("hide", o.value == null); if (o.value != null) { v.value = o.value; setTimeout(() => v.focus(), 60); }
     $("myes").textContent = o.yes; $("myes").className = e ? "bad" : ""; $("modal").classList.remove("hide");
     const done = ok => { $("modal").classList.add("hide"); res(ok ? (o.value != null ? v.value.trim() : true) : null); };
     $("mno").onclick = () => done(false); $("myes").onclick = () => done(true); v.onkeydown = ev => { if (ev.key === "Enter") done(true); };
@@ -705,7 +746,8 @@ function showSel() {
   const r = S.hit && S.scans.find(x => x.id === S.hit);
   if (r) {
     const p = pos(r.slot), where = p ? `Pall ${p.p} · plan ${p.z} · X ${p.x} · Y ${p.y}` : "Ingen plats ännu";
-    ci.innerHTML = `<div class="sel"><div><div class="mut">Valt lås</div><div class="sn">${esc(r.serial)}</div><div class="mut">${esc(where)} · skannad ${esc(fmt(r.scanned_at))}${r.scanned_by ? " av " + esc(r.scanned_by) : ""}</div></div><button class="sec fit" id="cps">Kopiera</button></div>`;
+    ci.innerHTML = `<div class="sel"><div><div class="mut">Valt lås</div><div class="sn">${esc(r.serial)}</div><div class="mut">${esc(where)} · skannad ${esc(fmt(r.scanned_at))}${r.scanned_by ? " av " + esc(r.scanned_by) : ""}</div></div><div style="display:flex;flex-direction:column;gap:6px"><button class="sec fit" id="cps">Kopiera</button><button class="sec fit" id="eds">Redigera</button></div></div>`;
+    $("eds").onclick = () => editScan(r);
     $("cps").onclick = () => { navigator.clipboard?.writeText(r.serial); toast("Serienumret kopierat", 1500); };
     tip.innerHTML = `<b>${esc(r.serial)}</b><span>${esc(where)}</span>`;
   } else if (S.hitCell) {
