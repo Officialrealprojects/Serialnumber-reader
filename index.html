@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Inläsning - Smarta Lås (V1)</title>
+<title>Inläsning - Smarta Lås</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%231f5fbf'/%3E%3Cg fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' transform='translate%284 4%29 scale%28.67%29'%3E%3Crect x='3' y='11' width='18' height='11' rx='2'/%3E%3Cpath d='M7 11V7a5 5 0 0 1 10 0v4'/%3E%3C/g%3E%3C/svg%3E">
 <meta name="theme-color" content="#1f2937">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -30,6 +30,7 @@ button.sec{background:var(--card);color:var(--tx);border-color:var(--bd)}
 button.bad{background:var(--bad);border-color:var(--bad)}button.on{background:var(--ok);border-color:var(--ok)}button:disabled{opacity:.4;pointer-events:none}
 input[type=text]{width:100%;padding:11px 12px;border:1px solid var(--bd);border-radius:6px;background:var(--card);color:var(--tx);outline:0}
 input[type=text]:focus{border-color:var(--ac);box-shadow:0 0 0 2px color-mix(in srgb,var(--ac) 25%,transparent)}
+select{font:inherit;width:100%;padding:11px 12px;border:1px solid var(--bd);border-radius:6px;background:var(--card);color:var(--tx);outline:0}
 input[type=checkbox]{width:18px;height:18px;accent-color:var(--ac)}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}.row>*{flex:1}.row>.fit{flex:0 0 auto}
 .seg{display:flex;border:1px solid var(--bd);border-radius:6px;overflow:hidden;margin-bottom:10px}
@@ -50,6 +51,9 @@ td.s{font-variant-numeric:tabular-nums;font-weight:600;font-size:17px}
 h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
 .badge{display:inline-block;font-size:11px;font-weight:600;padding:1px 6px;border-radius:3px;margin:3px 4px 0 0;color:#fff}
 .dup{background:var(--bad)}.wr{background:var(--warn)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}.chips>.mut{flex-basis:100%}
+.chip{display:inline-flex;align-items:center;border:1px solid var(--bd);border-radius:6px;padding-left:9px;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--tx);background:var(--bg)}
+.chip button{padding:5px 10px;border:0;background:none;color:var(--mut);font-size:18px;line-height:1}
 #toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#1f2937;color:#fff;padding:10px 16px;border-radius:6px;z-index:9;max-width:90%}
 #modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:10;padding:20px}
 .dlg{background:var(--card);border-radius:8px;max-width:380px;width:100%;overflow:hidden;border:1px solid var(--bd)}
@@ -122,9 +126,17 @@ h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
     </div>
     <div class="card">
       <h4><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>Varning vid serienummer</h4>
-      <div class="mut">Fråga innan sparning om serienumrets början är lika med eller större än talet nedan (t.ex. 66: 66xxxx och 67xxxx varnar, 15xxxx gör det inte). Tomt = ingen varning. Gäller bara den här enheten.</div>
-      <div class="row"><input type="text" id="limit" inputmode="numeric" placeholder="T.ex. 66"></div>
+      <div class="mut">Fråga innan sparning om serienumrets början jämfört med talet nedan uppfyller det villkor du väljer (t.ex. 66 och "lika med eller större än": 66xxxx och 67xxxx varnar, 15xxxx gör det inte). Tomt tal = ingen varning. Gäller bara den här enheten.</div>
+      <div class="row"><select id="lop" aria-label="Villkor"><option value="ge">Lika med eller större än</option><option value="gt">Större än</option><option value="eq">Lika med</option><option value="le">Lika med eller mindre än</option><option value="lt">Mindre än</option></select><input type="text" id="limit" inputmode="numeric" placeholder="T.ex. 66"></div>
     </div>
+    <div class="card">
+      <h4><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M12 8v5M12 16h.01"/></svg>Varningslista</h4>
+      <div class="mut">Lägg in serienummer som du vill bli varnad för. Om ett av dem skannas eller skrivs in visas en röd varning som frågar om du verkligen vill lägga till det i listan. Skriv in nummer här, eller importera en Excel-fil med serienumren uppifrån och ner i första kolumnen (eller i en kolumn med rubriken "Serienummer"). Gäller bara den här enheten och det här projektet.</div>
+      <div class="row"><input type="text" id="wadd" inputmode="numeric" placeholder="Serienummer att varna för"><button class="fit" id="waddb">Lägg till</button></div>
+      <div class="row"><button class="sec" id="wimp"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>Importera Excel</button><button class="sec" id="wshow">Visa lista (0)</button><button class="bad fit" id="wclr" disabled>Töm</button></div>
+      <div id="wlist" class="chips mut hide"></div>
+    </div>
+    <input type="file" id="wfile" accept=".xlsx,.xls,.csv,.txt,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" class="hide">
     <input type="file" id="file" accept="image/*" capture="environment" class="hide">
   </div>
 
@@ -173,7 +185,7 @@ const OCR_SPACE_KEY = "helloworld";
 
 const $ = id => document.getElementById(id);
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const S = { code: localStorage.getItem("code"), pname: localStorage.getItem("pname"), me: localStorage.getItem("me") || "", scans: [], sel: new Set(), mode: "qr", stream: null, track: null, torchOn: false, last: "", lastT: 0, busy: false, ch: null, limit: "" };
+const S = { code: localStorage.getItem("code"), pname: localStorage.getItem("pname"), me: localStorage.getItem("me") || "", scans: [], sel: new Set(), mode: "qr", stream: null, track: null, torchOn: false, last: "", lastT: 0, busy: false, ch: null, limit: "", watch: [], wset: new Set(), wopen: false };
 
 function toast(t, ms = 2200) { const e = $("toast"); e.textContent = t; e.classList.remove("hide"); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.add("hide"), ms); }
 const fmt = d => new Date(d).toLocaleString("sv-SE");
@@ -183,7 +195,7 @@ const genCode = () => { const a = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; return Arra
 function show() {
   $("home").classList.toggle("hide", !!S.code);
   $("proj").classList.toggle("hide", !S.code);
-  if (S.code) { $("ptitle").textContent = S.pname; $("pcode").textContent = S.code; S.limit = localStorage.getItem("limit_" + S.code) || ""; $("limit").value = S.limit; load(); subscribe(); startCam(); }
+  if (S.code) { $("ptitle").textContent = S.pname; $("pcode").textContent = S.code; S.limit = localStorage.getItem("limit_" + S.code) || ""; $("limit").value = S.limit; S.lop = localStorage.getItem("limitop_" + S.code) || "ge"; $("lop").value = S.lop; loadWatch(); load(); subscribe(); startCam(); }
   else { stopCam(); $("name").value = S.me; }
 }
 function needName() { S.me = $("name").value.trim(); if (!S.me) { toast("Skriv ditt namn först"); return false; } localStorage.setItem("me", S.me); return true; }
@@ -228,7 +240,8 @@ function render() {
     cb.onchange = () => { cb.checked ? S.sel.add(r.id) : S.sel.delete(r.id); upd(); }; c.appendChild(cb);
     const s = document.createElement("td"); s.className = "s"; s.textContent = r.serial;
     if (counts[r.serial] > 1) { const d = document.createElement("span"); d.className = "badge dup"; d.textContent = "Dubblett"; s.appendChild(d); }
-    if (over(r.serial)) { const d = document.createElement("span"); d.className = "badge wr"; d.textContent = "Över gräns"; s.appendChild(d); }
+    if (over(r.serial)) { const d = document.createElement("span"); d.className = "badge wr"; d.textContent = "Varning: gräns"; s.appendChild(d); }
+    if (watched(r.serial)) { const d = document.createElement("span"); d.className = "badge dup"; d.textContent = "Varningslista"; s.appendChild(d); }
     const t = document.createElement("td"); t.textContent = fmt(r.scanned_at);
     const b = document.createElement("td"); b.textContent = r.scanned_by || ""; b.className = "mut";
     const pz = document.createElement("td"); pz.className = "mut"; pz.textContent = posTxt(pos(r.slot));
@@ -246,14 +259,19 @@ const typLen = () => { // vanligaste längden på redan sparade serienummer (0 =
 };
 async function save(serial, method, o = {}) {
   serial = String(serial).trim(); if (!serial) return;
-  const bad = over(serial), dup = S.scans.some(r => r.serial === serial), L = typLen(), odd = L && /^\d+$/.test(serial) && serial.length !== L;
-  const notes = [dup && "Obs: serienumret finns redan i listan.", odd && `Obs: övriga lås har ${L} siffror, det här har ${serial.length}. Saknas någon siffra?`].filter(Boolean).join(" ");
-  let v = serial;
-  if (!(o.direct && !bad && !dup && !odd)) { // en bekräftelse räcker; hoppas över bara för egen inskrivning utan varningar
-    v = await dialog(bad
-      ? { err: 1, title: "Varning: över gränsen", text: `Serienumret börjar på eller är större än ${S.limit}. Vill du verkligen spara det? ${notes}`.trim(), yes: "Spara ändå", value: serial, alts: o.alts }
-      : { title: "Kontrollera serienumret", text: notes || "Stämmer serienumret? Rätta det vid behov innan du sparar.", yes: "Spara", value: serial, alts: o.alts });
-    if (!v) return toast("Inte sparad", 1500);
+  const L = typLen(); let v = serial;
+  // en bekräftelse räcker; hoppas över bara för egen inskrivning utan varningar.
+  // Rättas numret i rutan kontrolleras det nya numret mot varningslistan och gränsen innan det sparas.
+  for (let first = true; ; first = false) {
+    const bad = over(v), wl = watched(v), dup = S.scans.some(r => r.serial === v), odd = L && /^\d+$/.test(v) && v.length !== L;
+    if (first ? (o.direct && !bad && !wl && !dup && !odd) : (!bad && !wl)) break;
+    const notes = [dup && "Obs: serienumret finns redan i listan.", odd && `Obs: övriga lås har ${L} siffror, det här har ${v.length}. Saknas någon siffra?`].filter(Boolean).join(" ");
+    const warn = [wl && "Serienumret finns på din varningslista.", bad && `Serienumrets början ${OPS[S.lop || "ge"]} ${S.limit}.`].filter(Boolean).join(" ");
+    const r = await dialog(warn
+      ? { err: 1, title: wl ? "Varning: finns på varningslistan" : "Varning: träffar din gräns", text: `${warn} ${wl ? "Vill du verkligen lägga till serienumret i listan?" : "Vill du verkligen spara det?"} ${notes}`.trim(), yes: wl ? "Lägg till ändå" : "Spara ändå", value: v, alts: first && o.alts }
+      : { title: "Kontrollera serienumret", text: notes || "Stämmer serienumret? Rätta det vid behov innan du sparar.", yes: "Spara", value: v, alts: o.alts });
+    if (!r) return toast("Inte sparad", 1500);
+    if (r === v) break; v = r;
   }
   serial = v; let slot = null;
   if (S.dims) { const used = new Set(S.scans.map(r => r.slot).filter(n => n != null)); slot = 0; while (used.has(slot)) slot++; }
@@ -272,6 +290,7 @@ async function editScan(r) {
   const v = await dialog({ title: "Redigera serienummer", text: "Rätta serienumret och tryck Spara.", yes: "Spara ändring", value: r.serial });
   if (v == null) return; if (!v) return toast("Serienumret kan inte vara tomt", 2500); if (v === r.serial) return toast("Ingen ändring", 1500);
   if (S.scans.some(x => x.id !== r.id && x.serial === v) && !(await dialog({ err: 1, title: "Dubblett", text: `${v} finns redan i listan. Spara ändå?`, yes: "Spara ändå" }))) return;
+  if (watched(v) && !(await dialog({ err: 1, title: "Varning: finns på varningslistan", text: `${v} finns på din varningslista. Vill du verkligen spara det?`, yes: "Spara ändå" }))) return;
   const { error } = await db.from("scans").update({ serial: v }).eq("id", r.id); if (error) return toast(hint(error), 5000);
   toast("Serienumret ändrat", 2000); load();
 }
@@ -469,8 +488,77 @@ $("readqr").onclick = async () => {
     else toast("Hittade ingen QR-kod – gå närmare, zooma eller använd Ta foto", 4000);
   } finally { S.busy = false; }
 };
-function over(serial) { const L = S.limit; if (!L) return false; const t = String(serial); if (!/^\d+$/.test(t)) return t.startsWith(L); return Number(t.slice(0, L.length)) >= Number(L); }
+const OPS = { ge: "är lika med eller större än", gt: "är större än", eq: "är lika med", le: "är lika med eller mindre än", lt: "är mindre än" };
+function over(serial) { // jämför serienumrets början (lika många siffror som gränsen) med gränsen enligt valt villkor
+  const L = S.limit, op = S.lop || "ge"; if (!L) return false; const t = String(serial);
+  if (!/^\d+$/.test(t)) return op === "eq" ? t.startsWith(L) : false;
+  const a = Number(t.slice(0, L.length)), b = Number(L);
+  return op === "ge" ? a >= b : op === "gt" ? a > b : op === "eq" ? a === b : op === "le" ? a <= b : a < b;
+}
+$("lop").onchange = e => { S.lop = e.target.value; localStorage.setItem("limitop_" + S.code, S.lop); render(); };
 $("limit").oninput = e => { S.limit = e.target.value.replace(/\D/g, ""); localStorage.setItem("limit_" + S.code, S.limit); render(); };
+// ---------- Varningslista (serienummer som ska ge varning; sparas på enheten per projekt) ----------
+const wnorm = s => String(s).replace(/\s+/g, "").toUpperCase();
+function watched(serial) { return S.wset.has(wnorm(serial)); }
+function loadWatch() {
+  let a = []; try { a = JSON.parse(localStorage.getItem("watch_" + S.code) || "[]"); } catch { }
+  S.watch = Array.isArray(a) ? [...new Set(a.map(wnorm).filter(Boolean))] : []; S.wset = new Set(S.watch); $("wadd").value = ""; renderWatch();
+}
+function saveWatch() {
+  S.wset = new Set(S.watch);
+  try { localStorage.setItem("watch_" + S.code, JSON.stringify(S.watch)); } catch { toast("Varningslistan är för stor för att sparas på enheten", 4000); }
+  renderWatch(); render();
+}
+function addWatch(list) {
+  const a = [...new Set(list.map(wnorm).filter(Boolean))], nu = a.filter(s => !S.wset.has(s));
+  if (!a.length) return toast("Hittade inga serienummer", 3000);
+  if (!nu.length) return toast(a.length === 1 ? "Serienumret finns redan på varningslistan" : "Alla serienummer fanns redan på varningslistan", 3000);
+  const sc = new Set(S.scans.map(r => wnorm(r.serial))), hit = nu.filter(s => sc.has(s)).length;
+  S.watch = S.watch.concat(nu); saveWatch();
+  toast(`Lade till ${nu.length} serienummer på varningslistan` + (a.length > nu.length ? ` (${a.length - nu.length} fanns redan)` : "") + (hit ? `. Obs: ${hit} av dem är redan skannade – de är märkta i listan.` : ""), hit ? 6000 : 3500);
+}
+function renderWatch() {
+  const n = S.watch.length, box = $("wlist"); $("wshow").textContent = `${S.wopen ? "Dölj lista" : "Visa lista"} (${n})`; $("wclr").disabled = !n;
+  box.classList.toggle("hide", !S.wopen); if (!S.wopen) return;
+  const q = wnorm($("wadd").value), m = q ? S.watch.filter(s => s.includes(q)) : S.watch; box.innerHTML = "";
+  if (!m.length) { box.textContent = n ? "Inget nummer på varningslistan matchar det du har skrivit." : "Varningslistan är tom."; return; }
+  m.slice(0, 200).forEach(s => {
+    const c = document.createElement("span"), b = document.createElement("button"); c.className = "chip"; c.textContent = s;
+    b.textContent = "×"; b.setAttribute("aria-label", `Ta bort ${s} från varningslistan`); b.onclick = () => { S.watch = S.watch.filter(x => x !== s); saveWatch(); }; c.appendChild(b); box.appendChild(c);
+  });
+  if (m.length > 200) { const d = document.createElement("div"); d.className = "mut"; d.textContent = `Visar 200 av ${m.length}. Skriv början av ett nummer i rutan ovan för att söka.`; box.appendChild(d); }
+}
+function sheetSerials(ws) { // serienummer uppifrån och ner: kolumnen med rubriken "Serienummer" om den finns, annars första ifyllda cellen på varje rad
+  if (!ws || !ws["!ref"]) return [];
+  const rg = XLSX.utils.decode_range(ws["!ref"]);
+  const cell = (r, c) => {
+    const x = ws[XLSX.utils.encode_cell({ r, c })]; if (!x || x.v == null) return "";
+    const w = String(x.w ?? "").trim(); // w = som det visas i Excel (behåller inledande nollor)
+    return x.t === "n" ? (/^\d+$/.test(w) ? w : String(x.v)) : String(x.t === "s" ? x.v : (x.w ?? x.v)).trim();
+  };
+  let col = -1;
+  for (let r = rg.s.r; r <= Math.min(rg.e.r, rg.s.r + 9) && col < 0; r++) for (let c = rg.s.c; c <= rg.e.c; c++) if (/serie|serial/i.test(cell(r, c))) { col = c; break; }
+  const out = [];
+  for (let r = rg.s.r; r <= rg.e.r; r++) {
+    let v = ""; if (col >= 0) v = cell(r, col); else for (let c = rg.s.c; c <= rg.e.c && !v; c++) v = cell(r, c);
+    if (/\d/.test(v)) out.push(v); // rubriker och tomma rader hoppas över
+  }
+  return out;
+}
+$("waddb").onclick = () => { const a = $("wadd").value.split(/[\s,;]+/).filter(Boolean); if (!a.length) return toast("Skriv ett serienummer först"); $("wadd").value = ""; addWatch(a); renderWatch(); };
+$("wadd").onkeydown = e => { if (e.key === "Enter") $("waddb").click(); };
+$("wadd").oninput = () => { if (S.wopen) renderWatch(); };
+$("wshow").onclick = () => { S.wopen = !S.wopen; renderWatch(); };
+$("wimp").onclick = () => $("wfile").click();
+$("wfile").onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  try { const wb = XLSX.read(await f.arrayBuffer(), { type: "array", raw: true }); addWatch(sheetSerials(wb.Sheets[wb.SheetNames[0]])); }
+  catch (err) { toast("Kunde inte läsa filen: " + err.message, 4000); }
+};
+$("wclr").onclick = async () => {
+  if (!(await dialog({ err: 1, title: "Töm varningslistan", text: `Ta bort alla ${S.watch.length} serienummer från varningslistan? Redan skannade lås påverkas inte.`, yes: "Töm listan" }))) return;
+  S.watch = []; saveWatch(); toast("Varningslistan tömd");
+};
 function dialog(o) {
   return new Promise(res => {
     const v = $("mval"), e = !!o.err; $("dlg").className = "dlg" + (e ? " err" : ""); $("dh").className = "dh" + (e ? " err" : "");
