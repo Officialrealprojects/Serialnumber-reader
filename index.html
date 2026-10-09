@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Inläsning - Smarta Lås (V1)</title>
+<title>Inläsning – Smarta Lås</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%231f5fbf'/%3E%3Cg fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' transform='translate%284 4%29 scale%28.67%29'%3E%3Crect x='3' y='11' width='18' height='11' rx='2'/%3E%3Cpath d='M7 11V7a5 5 0 0 1 10 0v4'/%3E%3C/g%3E%3C/svg%3E">
+<meta name="theme-color" content="#1f2937">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
@@ -49,6 +51,20 @@ h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
 .dup{background:var(--bad)}.wr{background:var(--warn)}
 #toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#1f2937;color:#fff;padding:10px 16px;border-radius:6px;z-index:9;max-width:90%}
 #modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:10;padding:20px}
+.dlg{background:var(--card);border-radius:8px;max-width:380px;width:100%;overflow:hidden;border:1px solid var(--bd)}
+.dlg.err{border:2px solid var(--bad)}
+.dh{display:flex;gap:8px;align-items:center;padding:12px 16px;color:#fff;font-weight:600;background:var(--ac)}.dh.err{background:var(--bad)}
+.db{padding:16px}#mval{font-size:24px;font-weight:700;text-align:center;margin:12px 0;letter-spacing:.02em}
+.dlg.err #mval{border-color:var(--bad);color:var(--bad)}
+.found{font-weight:600;margin-top:6px}
+.pal{width:100%;max-height:440px;display:block}
+.pb{fill:#c9b28c}.pbl{fill:#a99169}.pbr{fill:#8f7956}
+.cb{cursor:pointer}.cb polygon{stroke-linejoin:round}
+.o polygon,.h polygon{stroke:var(--card);stroke-width:.8}
+.o .ct{fill:#8fb3e8}.o .cl{fill:#6591d0}.o .cr{fill:#4f79b3}
+.h .ct{fill:#ffc266}.h .cl{fill:#f59e0b}.h .cr{fill:#c77800}
+.e polygon{fill:rgba(127,127,127,.07);stroke:rgba(127,127,127,.3);stroke-width:.5}
+.ax{fill:var(--mut);font-size:11px;text-anchor:middle}
 </style>
 </head>
 <body>
@@ -57,7 +73,7 @@ h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
 
 <!-- Startvy: skapa/gå med -->
 <div id="home" class="hide">
-  <h1>Inläsning – Smarta Lås</h1>
+  <h1>Inläsning - Smarta Lås (V1)</h1>
   <div class="card">
     <div class="mut">Ditt namn (visas i listan)</div>
     <input type="text" id="name" placeholder="T.ex. Anna">
@@ -80,7 +96,7 @@ h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
       <button class="sec fit" id="leave">Byt projekt</button>
     </div>
   </div>
-  <div class="tabs"><button id="tScan">Skanna</button><button id="tList" class="sec">Lista (<span id="cnt">0</span>)</button></div>
+  <div class="tabs"><button id="tScan">Skanna</button><button id="tList" class="sec">Lista (<span id="cnt">0</span>)</button><button id="tPal" class="sec">Pall</button></div>
 
   <div id="vScan">
     <div class="seg"><button id="mQR">QR-kod</button><button id="mOCR" class="sec">Siffror (OCR)</button></div>
@@ -106,6 +122,17 @@ h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
     <input type="file" id="file" accept="image/*" capture="environment" class="hide">
   </div>
 
+  <div id="vPal" class="hide">
+    <div class="card"><h4>Pallens storlek</h4>
+      <div class="mut">Antal lås längs X-axeln, längs Y-axeln och antal våningar. Platserna fylls i skanningsordning: först i X-led, sedan Y-led, sedan nästa våning. Gäller hela projektet.</div>
+      <div class="row"><input type="text" id="dx" inputmode="numeric" placeholder="X"><input type="text" id="dy" inputmode="numeric" placeholder="Y"><input type="text" id="dz" inputmode="numeric" placeholder="Våningar"></div>
+      <button id="sdims">Spara pallstorlek</button></div>
+    <div class="card"><h4>Sök lås</h4>
+      <input type="text" id="q" placeholder="Serienummer (hela eller början)">
+      <div class="row" id="qres"></div><div class="found" id="qinfo"></div></div>
+    <div class="card"><div class="row" id="pallnav"></div><div id="palbox"></div><div class="mut" id="palcnt"></div></div>
+  </div>
+
   <div id="vList" class="hide">
     <div class="row">
       <button id="xlsx"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Exportera Excel</button>
@@ -113,14 +140,14 @@ h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
       <button class="bad fit" id="del" disabled>Ta bort (0)</button>
     </div>
     <div class="card" style="overflow-x:auto">
-      <table><thead><tr><th><input type="checkbox" id="all"></th><th>Serienummer</th><th>Datum &amp; tid</th><th>Av</th></tr></thead><tbody id="rows"></tbody></table>
+      <table><thead><tr><th><input type="checkbox" id="all"></th><th>Serienummer</th><th>Plats</th><th>Datum &amp; tid</th><th>Av</th></tr></thead><tbody id="rows"></tbody></table>
       <div id="empty" class="mut" style="padding:10px">Inga koder ännu.</div>
     </div>
   </div>
 </div>
 </div>
 <div id="toast" class="hide"></div>
-<div id="modal" class="hide"><div class="card" style="max-width:340px"><b id="mt"></b><div class="row"><button class="sec" id="mno">Avbryt</button><button class="bad" id="myes">Ja, ta bort</button></div></div></div>
+<div id="modal" class="hide"><div class="dlg" id="dlg"><div class="dh" id="dh"></div><div class="db"><div id="mt"></div><input type="text" id="mval" class="hide"><div class="row"><button class="sec" id="mno">Avbryt</button><button id="myes"></button></div></div></div></div>
 
 <script>
 // ====== FYLL I DINA UPPGIFTER FRÅN SUPABASE (Project Settings > API) ======
@@ -161,9 +188,16 @@ $("leave").onclick = () => { localStorage.removeItem("code"); localStorage.remov
 $("copy").onclick = e => { e.preventDefault(); navigator.clipboard?.writeText(S.code); toast("Koden kopierad"); };
 
 // ---------- Data ----------
+const parseDims = t => { const [x, y, z] = String(t || "").split(",").map(Number); return x >= 1 && y >= 1 && z >= 1 ? { x, y, z } : null; };
+const hint = e => /slot|dims/i.test(e.message) ? "Databasen saknar nya kolumner – kör uppdateringsskriptet i Supabase (se instruktionerna)." : "Fel: " + e.message;
+const esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function pos(slot) { if (slot == null || !S.dims) return null; const { x: X, y: Y, z: Z } = S.dims, cap = X * Y * Z, r = slot % cap; return { p: Math.floor(slot / cap) + 1, x: r % X + 1, y: Math.floor(r / X) % Y + 1, z: Math.floor(r / (X * Y)) + 1 }; }
+const posTxt = p => p ? `P${p.p} X${p.x} Y${p.y} V${p.z}` : "";
 async function load() {
-  const { data, error } = await db.from("scans").select("*").eq("project_code", S.code).order("scanned_at", { ascending: false });
+  const [{ data, error }, { data: pj }] = await Promise.all([db.from("scans").select("*").eq("project_code", S.code).order("scanned_at", { ascending: false }), db.from("projects").select("dims").eq("code", S.code).maybeSingle()]);
   if (error) return toast("Kunde inte hämta: " + error.message, 4000);
+  S.dims = parseDims(pj && pj.dims);
+  if (S.dims && !["dx", "dy", "dz"].includes(document.activeElement.id)) { $("dx").value = S.dims.x; $("dy").value = S.dims.y; $("dz").value = S.dims.z; }
   S.scans = data; S.sel = new Set([...S.sel].filter(id => data.some(r => r.id === id))); render();
 }
 function subscribe() {
@@ -183,32 +217,46 @@ function render() {
     if (over(r.serial)) { const d = document.createElement("span"); d.className = "badge wr"; d.textContent = "Över gräns"; s.appendChild(d); }
     const t = document.createElement("td"); t.textContent = fmt(r.scanned_at);
     const b = document.createElement("td"); b.textContent = r.scanned_by || ""; b.className = "mut";
-    tr.append(c, s, t, b); tb.appendChild(tr);
-  }); upd();
+    const pz = document.createElement("td"); pz.className = "mut"; pz.textContent = posTxt(pos(r.slot));
+    tr.append(c, s, pz, t, b); tb.appendChild(tr);
+  }); upd(); renderPall();
 }
 function upd() { $("del").textContent = `Ta bort (${S.sel.size})`; $("del").disabled = !S.sel.size; $("all").checked = S.scans.length > 0 && S.sel.size === S.scans.length; }
 $("all").onchange = e => { S.sel = e.target.checked ? new Set(S.scans.map(r => r.id)) : new Set(); render(); };
 
 async function save(serial, method) {
   serial = String(serial).trim(); if (!serial) return;
-  if (over(serial) && !(await confirmBox(`Serienumret ${serial} börjar på eller är större än ${S.limit}. Vill du verkligen spara det?`, "Ja, spara", false))) return toast("Inte sparad: " + serial, 2500);
-  const dup = S.scans.some(r => r.serial === serial);
-  const { error } = await db.from("scans").insert({ project_code: S.code, serial, method, scanned_by: S.me });
-  if (error) return toast("Fel: " + error.message, 4000);
-  navigator.vibrate?.(80); toast(dup ? `${serial} fanns redan – sparad ändå` : `Sparad: ${serial}`, dup ? 3500 : 1800); load();
+  const bad = over(serial), dup = S.scans.some(r => r.serial === serial);
+  const v = await dialog(bad
+    ? { err: 1, title: "Varning: över gränsen", text: `Serienumret börjar på eller är större än ${S.limit}. Vill du verkligen spara det?`, yes: "Spara ändå", value: serial }
+    : { title: "Kontrollera serienumret", text: dup ? "Obs: serienumret finns redan i listan." : "Stämmer serienumret? Rätta det vid behov innan du sparar.", yes: "Spara", value: serial });
+  if (!v) return toast("Inte sparad", 1500);
+  serial = v; let slot = null;
+  if (S.dims) { const used = new Set(S.scans.map(r => r.slot).filter(n => n != null)); slot = 0; while (used.has(slot)) slot++; }
+  let error;
+  for (let t = 0; t < 5; t++) {
+    ({ error } = await db.from("scans").insert({ project_code: S.code, serial, method, scanned_by: S.me, slot }));
+    if (!error || error.code !== "23505" || slot == null) break; slot++;
+  }
+  if (error) return toast(hint(error), 5000);
+  navigator.vibrate?.(80); const p = pos(slot);
+  toast(p ? `Sparad. Placera på pall ${p.p}, X ${p.x}, Y ${p.y}, våning ${p.z}` : `Sparad: ${serial}`, 4000); load();
 }
 
 // ---------- Radera (tvåsteg: markera, sedan bekräfta) ----------
 $("del").onclick = async () => {
-  if (!(await confirmBox(`Ta bort ${S.sel.size} kod(er)? Det går inte att ångra.`, "Ja, ta bort", true))) return;
+  if (!(await dialog({ err: 1, title: "Ta bort koder", text: `Ta bort ${S.sel.size} kod(er)? Det går inte att ångra.`, yes: "Ta bort" }))) return;
   const { error } = await db.from("scans").delete().in("id", [...S.sel]);
   if (error) return toast("Fel: " + error.message, 4000); S.sel.clear(); toast("Borttaget"); load();
 };
 
 // ---------- Export ----------
-function rows() { return [["Serienummer", "Datum och tid", "Skannad av", "Metod"], ...[...S.scans].reverse().map(r => [String(r.serial), fmt(r.scanned_at), r.scanned_by || "", r.method || ""])]; }
+function rows() {
+  const a = [...S.scans].sort((p, q) => new Date(p.scanned_at) - new Date(q.scanned_at)); // äldst först
+  return [["Nr", "Serienummer", "Plats", "Datum och tid", "Skannad av", "Metod"], ...a.map((r, i) => [i + 1, String(r.serial), posTxt(pos(r.slot)), fmt(r.scanned_at), r.scanned_by || "", r.method || ""])];
+}
 const fname = ext => `${S.pname.replace(/[^\w\-åäöÅÄÖ ]/g, "")}_${new Date().toISOString().slice(0, 10)}.${ext}`;
-$("xlsx").onclick = () => { const ws = XLSX.utils.aoa_to_sheet(rows()); ws["!cols"] = [{ wch: 20 }, { wch: 20 }, { wch: 16 }, { wch: 8 }]; const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Lås"); XLSX.writeFile(wb, fname("xlsx")); };
+$("xlsx").onclick = () => { const ws = XLSX.utils.aoa_to_sheet(rows()); ws["!cols"] = [{ wch: 6 }, { wch: 22 }, { wch: 18 }, { wch: 20 }, { wch: 16 }, { wch: 14 }]; const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Lås"); XLSX.writeFile(wb, fname("xlsx")); };
 $("csv").onclick = () => {
   const q = v => { v = String(v); return /[;"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v; };
   const csv = "\ufeff" + rows().map(r => r.map(q).join(";")).join("\r\n"); // semikolon = svensk Excel delar upp i kolumner
@@ -216,11 +264,11 @@ $("csv").onclick = () => {
 };
 
 // ---------- Flikar & lägen ----------
-function tab(n) { $("vScan").classList.toggle("hide", n !== "scan"); $("vList").classList.toggle("hide", n !== "list"); $("tScan").className = n === "scan" ? "" : "sec"; $("tList").className = n === "list" ? "" : "sec"; }
-$("tScan").onclick = () => tab("scan"); $("tList").onclick = () => tab("list");
+function tab(n) { for (const [k, v] of [["scan", "vScan"], ["list", "vList"], ["pal", "vPal"]]) { $(v).classList.toggle("hide", n !== k); $("t" + k[0].toUpperCase() + k.slice(1)).className = n === k ? "" : "sec"; } if (n === "pal") renderPall(); }
+$("tScan").onclick = () => tab("scan"); $("tList").onclick = () => tab("list"); $("tPal").onclick = () => tab("pal");
 function mode(m) {
   S.mode = m; $("mQR").className = m === "qr" ? "" : "sec"; $("mOCR").className = m === "ocr" ? "" : "sec"; $("read").classList.toggle("hide", m !== "ocr"); $("readqr").classList.toggle("hide", m !== "qr"); $("stat").textContent = m === "qr" ? "QR: söker automatiskt" : "OCR: tryck Läs siffror";
-  $("hint").textContent = m === "qr" ? "Håll QR-koden inom rutan. Zooma in vid behov. Det läses automatiskt." : "Rikta rutan mot siffrorna och tryck Läs siffror. Kontrollera texten innan du sparar.";
+  $("hint").textContent = m === "qr" ? "Håll QR-koden inom rutan på 10–20 cm avstånd och vänta tills bilden är skarp. Zooma vid behov. Det läses automatiskt, eller tryck Läs QR." : "Rikta rutan mot siffrorna och tryck Läs siffror. Kontrollera texten innan du sparar.";
 }
 $("mQR").onclick = () => mode("qr"); $("mOCR").onclick = () => mode("ocr"); mode("qr");
 
@@ -274,7 +322,8 @@ async function loop() {
   while (S.stream) {
     await new Promise(r => setTimeout(r, 160));
     if (S.mode !== "qr" || S.busy || $("vScan").classList.contains("hide") || !v.videoWidth) continue;
-    S.busy = true;
+    S.busy = true; S.fr = (S.fr || 0) + 1;
+    if (S.fr % 8 === 1) $("stat").textContent = `QR: söker · ${v.videoWidth}x${v.videoHeight} ${detector ? "BD " : ""}${typeof ZXing !== "undefined" ? "ZX " : ""}jsQR`;
     try {
       const val = await decodeQR(v, v.videoWidth, v.videoHeight);
       if (val) { const t = Date.now(); if (val !== S.last || t - S.lastT > 4000) { S.last = val; S.lastT = t; await save(val, "QR"); S.lastT = Date.now(); } else S.lastT = t; }
@@ -367,14 +416,69 @@ $("readqr").onclick = async () => {
     else toast("Hittade ingen QR-kod – gå närmare, zooma eller använd Ta foto", 4000);
   } finally { S.busy = false; }
 };
-function over(serial) { const L = S.limit; if (!L) return false; const p = String(serial).replace(/\D/g, "").slice(0, L.length); return p.length > 0 && Number(p) >= Number(L); }
+function over(serial) { const L = S.limit; if (!L) return false; const t = String(serial); if (!/^\d+$/.test(t)) return t.startsWith(L); return Number(t.slice(0, L.length)) >= Number(L); }
 $("limit").oninput = e => { S.limit = e.target.value.replace(/\D/g, ""); localStorage.setItem("limit_" + S.code, S.limit); render(); };
-function confirmBox(text, yes, danger) {
+function dialog(o) {
   return new Promise(res => {
-    $("mt").textContent = text; $("myes").textContent = yes; $("myes").className = danger ? "bad" : ""; $("modal").classList.remove("hide");
-    $("mno").onclick = () => { $("modal").classList.add("hide"); res(false); };
-    $("myes").onclick = () => { $("modal").classList.add("hide"); res(true); };
+    const v = $("mval"), e = !!o.err; $("dlg").className = "dlg" + (e ? " err" : ""); $("dh").className = "dh" + (e ? " err" : "");
+    $("dh").innerHTML = `@ICO@<span></span>`.replace("@ICO@", e ? `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>` : `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>`); $("dh").lastChild.textContent = o.title;
+    $("mt").textContent = o.text || ""; v.classList.toggle("hide", o.value == null); if (o.value != null) { v.value = o.value; setTimeout(() => v.focus(), 60); }
+    $("myes").textContent = o.yes; $("myes").className = e ? "bad" : ""; $("modal").classList.remove("hide");
+    const done = ok => { $("modal").classList.add("hide"); res(ok ? (o.value != null ? v.value.trim() : true) : null); };
+    $("mno").onclick = () => done(false); $("myes").onclick = () => done(true); v.onkeydown = ev => { if (ev.key === "Enter") done(true); };
   });
+}
+// ---------- Pall ----------
+$("sdims").onclick = async () => {
+  const v = ["dx", "dy", "dz"].map(id => parseInt($(id).value, 10));
+  if (v.some(n => !(n >= 1 && n <= 99))) return toast("Ange tal mellan 1 och 99 i alla tre rutor", 3000);
+  const { error } = await db.from("projects").update({ dims: v.join(",") }).eq("code", S.code); if (error) return toast(hint(error), 5000);
+  S.dims = { x: v[0], y: v[1], z: v[2] };
+  const un = S.scans.filter(r => r.slot == null).sort((p, q) => new Date(p.scanned_at) - new Date(q.scanned_at));
+  if (un.length) {
+    const used = new Set(S.scans.map(r => r.slot).filter(n => n != null)); let n = 0;
+    const up = un.map(r => { while (used.has(n)) n++; used.add(n); return { ...r, slot: n }; });
+    const { error: e2 } = await db.from("scans").upsert(up); if (e2) return toast(hint(e2), 5000);
+  }
+  toast("Pallstorlek sparad"); load();
+};
+function setHit(r) {
+  S.hit = r.id; const p = pos(r.slot);
+  $("qinfo").textContent = p ? `${r.serial}: pall ${p.p}, X ${p.x}, Y ${p.y}, våning ${p.z}` : `${r.serial}: ingen plats – ange pallstorlek först`;
+  if (p) S.pall = p.p - 1; renderPall();
+}
+$("q").oninput = () => {
+  const q = $("q").value.trim(), res = $("qres"); res.innerHTML = ""; $("qinfo").textContent = ""; S.hit = null;
+  if (!q) return renderPall();
+  const m = S.scans.filter(r => r.serial.includes(q)), ex = m.find(r => r.serial === q);
+  if (!m.length) { $("qinfo").textContent = "Hittade inget lås med den koden."; return renderPall(); }
+  if (m.length === 1 || ex) return setHit(ex || m[0]);
+  $("qinfo").textContent = `${m.length} träffar – välj ett:`;
+  m.slice(0, 8).forEach(r => { const b = document.createElement("button"); b.className = "sec"; b.textContent = r.serial; b.onclick = () => setHit(r); res.appendChild(b); }); renderPall();
+};
+$("palbox").onclick = e => { const g = e.target.closest("g[data-id]"); if (!g) return; const r = S.scans.find(x => x.id === g.dataset.id); if (r) { $("q").value = r.serial; $("qres").innerHTML = ""; setHit(r); } };
+function renderPall() {
+  const box = $("palbox");
+  if (!S.dims) { box.innerHTML = '<div class="mut">Ange pallens storlek ovan för att få koordinater och 3D-vy.</div>'; $("pallnav").innerHTML = ""; $("palcnt").textContent = ""; return; }
+  const { x: X, y: Y, z: Z } = S.dims, cap = X * Y * Z, used = S.scans.filter(r => r.slot != null);
+  const np = Math.max(1, ...used.map(r => Math.floor(r.slot / cap) + 1)); S.pall = Math.min(Math.max(S.pall || 0, 0), np - 1);
+  const nav = $("pallnav"); nav.innerHTML = "";
+  if (np > 1) for (let i = 0; i < np; i++) { const b = document.createElement("button"); b.textContent = "Pall " + (i + 1); b.className = i === S.pall ? "" : "sec"; b.onclick = () => { S.pall = i; renderPall(); }; nav.appendChild(b); }
+  const cells = {}; let cnt = 0;
+  used.forEach(r => { const p = pos(r.slot); if (p.p - 1 === S.pall) { cells[`${p.x - 1},${p.y - 1},${p.z - 1}`] = r; cnt++; } });
+  $("palcnt").textContent = `Pall ${S.pall + 1}: ${cnt} av ${cap} platser upptagna. Tryck på ett lås för att se dess plats.`;
+  const a = 16, b = 9, h = 14, st = h + 3, t = 7, pt = (i, j) => [(i - j) * a, (i + j) * b + h];
+  const g0 = pt(0, 0), gx = pt(X, 0), gb = pt(X, Y), gy = pt(0, Y);
+  let out = `<polygon class="pb" points="${g0} ${gx} ${gb} ${gy}"/><polygon class="pbl" points="${gy} ${gb} ${gb[0]},${gb[1] + t} ${gy[0]},${gy[1] + t}"/><polygon class="pbr" points="${gb} ${gx} ${gx[0]},${gx[1] + t} ${gb[0]},${gb[1] + t}"/>`;
+  const L = []; for (let k = 0; k < Z; k++) for (let j = 0; j < Y; j++) for (let i = 0; i < X; i++) L.push([i, j, k]);
+  L.sort((p, q) => (p[0] + p[1] + p[2]) - (q[0] + q[1] + q[2]) || p[2] - q[2]);
+  for (const [i, j, k] of L) {
+    const px = (i - j) * a, py = (i + j) * b - k * st, r = cells[`${i},${j},${k}`], c = !r ? "e" : r.id === S.hit ? "h" : "o";
+    out += `<g class="cb ${c}"${r ? ` data-id="${r.id}"` : ""}>${r ? `<title>${esc(r.serial)}</title>` : ""}<polygon class="ct" points="${px},${py} ${px + a},${py + b} ${px},${py + 2 * b} ${px - a},${py + b}"/><polygon class="cl" points="${px - a},${py + b} ${px},${py + 2 * b} ${px},${py + 2 * b + h} ${px - a},${py + b + h}"/><polygon class="cr" points="${px},${py + 2 * b} ${px + a},${py + b} ${px + a},${py + b + h} ${px},${py + 2 * b + h}"/></g>`;
+  }
+  out += `<text class="ax" x="${(gy[0] + gb[0]) / 2 - 10}" y="${(gy[1] + gb[1]) / 2 + t + 16}">X (${X})</text><text class="ax" x="${(gb[0] + gx[0]) / 2 + 10}" y="${(gb[1] + gx[1]) / 2 + t + 16}">Y (${Y})</text>`;
+  const x0 = -Y * a - 26, y0 = -(Z - 1) * st - 6, w = (X + Y) * a + 52, hh = (X + Y) * b + h + t + 28 + (Z - 1) * st + 6;
+  box.innerHTML = `<svg class="pal" viewBox="${x0} ${y0} ${w} ${hh}">${out}</svg>`;
 }
 show();
 </script>
