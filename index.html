@@ -6,40 +6,53 @@
 <title>Inläsning – Smarta Lås</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
 <style>
-:root{--bg:#f4f5f7;--card:#fff;--tx:#14181f;--mut:#6b7280;--ac:#0b5fff;--bad:#d92d20;--ok:#12b76a;--bd:#e3e6ea}
-@media(prefers-color-scheme:dark){:root{--bg:#0f1115;--card:#1a1d23;--tx:#eef0f3;--mut:#9aa3af;--bd:#2a2f38}}
-*{box-sizing:border-box}
-body{margin:0;font:16px system-ui,sans-serif;background:var(--bg);color:var(--tx);padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
-.wrap{max-width:900px;margin:0 auto;padding:12px}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:12px}
-h1{font-size:20px;margin:4px 0 12px}
+:root{--bg:#f4f5f7;--card:#fff;--tx:#1b1f24;--mut:#667085;--ac:#1f5fbf;--bad:#c62828;--ok:#2e7d32;--warn:#a85f00;--bd:#d9dde3}
+@media(prefers-color-scheme:dark){:root{--bg:#14171b;--card:#1c2026;--tx:#e8eaed;--mut:#9aa3ad;--bd:#2c323a;--ac:#5b9bf0;--warn:#d98a1c}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--tx);padding-bottom:env(safe-area-inset-bottom)}
+.top{display:flex;gap:12px;align-items:center;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;background:#1f2937;color:#fff}
+.top .logo .i{width:24px;height:24px;margin:0}
+.top b{font-size:17px;font-weight:600;display:block;line-height:1.2}.top small{color:#aab4c3;font-size:13px}
+.wrap{max-width:860px;margin:0 auto;padding:14px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:14px;margin-bottom:12px}
 button,input{font:inherit}
-button{background:var(--ac);color:#fff;border:0;border-radius:10px;padding:11px 14px;cursor:pointer}
-button.sec{background:transparent;color:var(--tx);border:1px solid var(--bd)}
-button.bad{background:var(--bad)}
-button.on{background:var(--ok)}
-button:disabled{opacity:.5}
-input[type=text]{width:100%;padding:11px;border:1px solid var(--bd);border-radius:10px;background:var(--bg);color:var(--tx)}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
-.row>*{flex:1}.row>.fit{flex:0 0 auto}
-.tabs{display:flex;gap:8px;margin-bottom:12px}.tabs button{flex:1}
+.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+button{display:inline-flex;align-items:center;justify-content:center;gap:7px;background:var(--ac);color:#fff;border:1px solid var(--ac);border-radius:6px;padding:10px 14px;font-weight:500;cursor:pointer}
+button:active{opacity:.85}
+button.sec{background:var(--card);color:var(--tx);border-color:var(--bd)}
+button.bad{background:var(--bad);border-color:var(--bad)}button.on{background:var(--ok);border-color:var(--ok)}button:disabled{opacity:.4;pointer-events:none}
+input[type=text]{width:100%;padding:11px 12px;border:1px solid var(--bd);border-radius:6px;background:var(--card);color:var(--tx);outline:0}
+input[type=text]:focus{border-color:var(--ac);box-shadow:0 0 0 2px color-mix(in srgb,var(--ac) 25%,transparent)}
+input[type=checkbox]{width:18px;height:18px;accent-color:var(--ac)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}.row>*{flex:1}.row>.fit{flex:0 0 auto}
+.seg{display:flex;border:1px solid var(--bd);border-radius:6px;overflow:hidden;margin-bottom:10px}
+.seg button{flex:1;border:0;border-radius:0}.seg button.sec{background:var(--card);color:var(--mut)}
+.tabs{display:flex;border-bottom:1px solid var(--bd);margin-bottom:14px}
+.tabs button{flex:1;background:none;color:var(--mut);border:0;border-bottom:2px solid transparent;border-radius:0;padding:10px 4px}
+.tabs button:not(.sec){color:var(--tx);border-bottom-color:var(--ac);font-weight:600}
 .hide{display:none!important}
-#vwrap{position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:1/1}
+#vwrap{position:relative;background:#000;border-radius:8px;overflow:hidden;aspect-ratio:1/1}
 video{width:100%;height:100%;object-fit:cover}
-#box{position:absolute;inset:25%;border:3px solid #fff;border-radius:10px;box-shadow:0 0 0 999px rgba(0,0,0,.35);pointer-events:none}
+#box{position:absolute;inset:22%;border:2px solid rgba(255,255,255,.9);border-radius:4px;box-shadow:0 0 0 999px rgba(0,0,0,.42);pointer-events:none}
+#stat{position:absolute;left:8px;top:8px;background:rgba(0,0,0,.6);color:#fff;padding:3px 8px;border-radius:3px;font-size:12px}
 table{width:100%;border-collapse:collapse}
-th,td{text-align:left;padding:9px 6px;border-bottom:1px solid var(--bd);font-size:15px}
-td.s{font-variant-numeric:tabular-nums;font-weight:600}
+th{font-size:12px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
+th,td{text-align:left;padding:10px 6px;border-bottom:1px solid var(--bd)}
+td.s{font-variant-numeric:tabular-nums;font-weight:600;font-size:17px}
 .mut{color:var(--mut);font-size:13px}
-.dup{color:var(--bad);font-size:12px;font-weight:600}
-#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#14181f;color:#fff;padding:11px 16px;border-radius:10px;z-index:9;max-width:90%}
+h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
+.badge{display:inline-block;font-size:11px;font-weight:600;padding:1px 6px;border-radius:3px;margin:3px 4px 0 0;color:#fff}
+.dup{background:var(--bad)}.wr{background:var(--warn)}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#1f2937;color:#fff;padding:10px 16px;border-radius:6px;z-index:9;max-width:90%}
 #modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:10;padding:20px}
 </style>
 </head>
 <body>
+<header class="top"><span class="logo"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span><div><b>Låsinventering</b><small>Inventering av digitala lås</small></div></header>
 <div class="wrap">
 
 <!-- Startvy: skapa/gå med -->
@@ -70,12 +83,13 @@ td.s{font-variant-numeric:tabular-nums;font-weight:600}
   <div class="tabs"><button id="tScan">Skanna</button><button id="tList" class="sec">Lista (<span id="cnt">0</span>)</button></div>
 
   <div id="vScan">
-    <div class="row"><button id="mQR">QR-kod</button><button id="mOCR" class="sec">Siffror (OCR)</button></div>
-    <div id="vwrap"><video id="vid" playsinline muted></video><div id="box"></div></div>
+    <div class="seg"><button id="mQR">QR-kod</button><button id="mOCR" class="sec">Siffror (OCR)</button></div>
+    <div id="vwrap"><video id="vid" playsinline muted></video><div id="box"></div><div id="stat"></div></div>
     <div class="row">
-      <button class="sec" id="torch">🔦 Ficklampa</button>
-      <button class="sec" id="photo">📷 Ta foto</button>
-      <button id="read" class="hide">Läs siffror</button>
+      <button class="sec" id="torch"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6c0 2-2 2-2 4v10a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V10c0-2-2-2-2-4V2h12z"/><path d="M6 6h12M12 12v3"/></svg>Ficklampa</button>
+      <button class="sec" id="photo"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/></svg>Ta foto</button>
+      <button id="readqr"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M20 20h.01M17 17v3"/></svg>Läs QR</button>
+      <button id="read" class="hide"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>Läs siffror</button>
     </div>
     <div class="row" id="cands"></div>
     <div class="row" id="zrow"><span class="fit mut">Zoom</span><input type="range" id="zoom" min="1" max="1" step="0.1"></div>
@@ -84,13 +98,18 @@ td.s{font-variant-numeric:tabular-nums;font-weight:600}
       <b>Skriv in / korrigera</b>
       <div class="row"><input type="text" id="manual" inputmode="numeric" placeholder="Serienummer"><button class="fit" id="addm">Spara</button></div>
     </div>
+    <div class="card">
+      <h4><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>Varning vid serienummer</h4>
+      <div class="mut">Fråga innan sparning om serienumrets början är lika med eller större än talet nedan (t.ex. 66: 66xxxx och 67xxxx varnar, 15xxxx gör det inte). Tomt = ingen varning. Gäller bara den här enheten.</div>
+      <div class="row"><input type="text" id="limit" inputmode="numeric" placeholder="T.ex. 66"></div>
+    </div>
     <input type="file" id="file" accept="image/*" capture="environment" class="hide">
   </div>
 
   <div id="vList" class="hide">
     <div class="row">
-      <button id="xlsx">Exportera Excel</button>
-      <button class="sec" id="csv">Exportera CSV</button>
+      <button id="xlsx"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Exportera Excel</button>
+      <button class="sec" id="csv"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Exportera CSV</button>
       <button class="bad fit" id="del" disabled>Ta bort (0)</button>
     </div>
     <div class="card" style="overflow-x:auto">
@@ -105,7 +124,7 @@ td.s{font-variant-numeric:tabular-nums;font-weight:600}
 
 <script>
 // ====== FYLL I DINA UPPGIFTER FRÅN SUPABASE (Project Settings > API) ======
-const SUPABASE_URL = "https://hnjlebibxnkgxubtthff.supabase.co";
+const SUPABASE_URL = "https://hnjlebibxnkgxubtthff.supabase.co"; 
 const SUPABASE_KEY = "sb_publishable_XRFCx3Gk8xNV_gLJNIUCmA_433YnsFM";
 // Gratis nyckel från ocr.space/ocrapi (kommer via e-post). "helloworld" är en delad testnyckel med låg gräns.
 const OCR_SPACE_KEY = "helloworld";
@@ -113,7 +132,7 @@ const OCR_SPACE_KEY = "helloworld";
 
 const $ = id => document.getElementById(id);
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const S = { code: localStorage.getItem("code"), pname: localStorage.getItem("pname"), me: localStorage.getItem("me") || "", scans: [], sel: new Set(), mode: "qr", stream: null, track: null, torchOn: false, last: "", lastT: 0, busy: false, ch: null };
+const S = { code: localStorage.getItem("code"), pname: localStorage.getItem("pname"), me: localStorage.getItem("me") || "", scans: [], sel: new Set(), mode: "qr", stream: null, track: null, torchOn: false, last: "", lastT: 0, busy: false, ch: null, limit: "" };
 
 function toast(t, ms = 2200) { const e = $("toast"); e.textContent = t; e.classList.remove("hide"); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.add("hide"), ms); }
 const fmt = d => new Date(d).toLocaleString("sv-SE");
@@ -123,7 +142,7 @@ const genCode = () => { const a = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; return Arra
 function show() {
   $("home").classList.toggle("hide", !!S.code);
   $("proj").classList.toggle("hide", !S.code);
-  if (S.code) { $("ptitle").textContent = S.pname; $("pcode").textContent = S.code; load(); subscribe(); startCam(); }
+  if (S.code) { $("ptitle").textContent = S.pname; $("pcode").textContent = S.code; S.limit = localStorage.getItem("limit_" + S.code) || ""; $("limit").value = S.limit; load(); subscribe(); startCam(); }
   else { stopCam(); $("name").value = S.me; }
 }
 function needName() { S.me = $("name").value.trim(); if (!S.me) { toast("Skriv ditt namn först"); return false; } localStorage.setItem("me", S.me); return true; }
@@ -160,7 +179,8 @@ function render() {
     const c = document.createElement("td"); const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = S.sel.has(r.id);
     cb.onchange = () => { cb.checked ? S.sel.add(r.id) : S.sel.delete(r.id); upd(); }; c.appendChild(cb);
     const s = document.createElement("td"); s.className = "s"; s.textContent = r.serial;
-    if (counts[r.serial] > 1) { const d = document.createElement("div"); d.className = "dup"; d.textContent = "Dubblett"; s.appendChild(d); }
+    if (counts[r.serial] > 1) { const d = document.createElement("span"); d.className = "badge dup"; d.textContent = "Dubblett"; s.appendChild(d); }
+    if (over(r.serial)) { const d = document.createElement("span"); d.className = "badge wr"; d.textContent = "Över gräns"; s.appendChild(d); }
     const t = document.createElement("td"); t.textContent = fmt(r.scanned_at);
     const b = document.createElement("td"); b.textContent = r.scanned_by || ""; b.className = "mut";
     tr.append(c, s, t, b); tb.appendChild(tr);
@@ -171,17 +191,16 @@ $("all").onchange = e => { S.sel = e.target.checked ? new Set(S.scans.map(r => r
 
 async function save(serial, method) {
   serial = String(serial).trim(); if (!serial) return;
+  if (over(serial) && !(await confirmBox(`Serienumret ${serial} börjar på eller är större än ${S.limit}. Vill du verkligen spara det?`, "Ja, spara", false))) return toast("Inte sparad: " + serial, 2500);
   const dup = S.scans.some(r => r.serial === serial);
   const { error } = await db.from("scans").insert({ project_code: S.code, serial, method, scanned_by: S.me });
   if (error) return toast("Fel: " + error.message, 4000);
-  navigator.vibrate?.(80); toast(dup ? `⚠ ${serial} fanns redan – sparad ändå` : `✓ ${serial}`, dup ? 3500 : 1800); load();
+  navigator.vibrate?.(80); toast(dup ? `${serial} fanns redan – sparad ändå` : `Sparad: ${serial}`, dup ? 3500 : 1800); load();
 }
 
 // ---------- Radera (tvåsteg: markera, sedan bekräfta) ----------
-$("del").onclick = () => { $("mt").textContent = `Ta bort ${S.sel.size} kod(er)? Det går inte att ångra.`; $("modal").classList.remove("hide"); };
-$("mno").onclick = () => $("modal").classList.add("hide");
-$("myes").onclick = async () => {
-  $("modal").classList.add("hide");
+$("del").onclick = async () => {
+  if (!(await confirmBox(`Ta bort ${S.sel.size} kod(er)? Det går inte att ångra.`, "Ja, ta bort", true))) return;
   const { error } = await db.from("scans").delete().in("id", [...S.sel]);
   if (error) return toast("Fel: " + error.message, 4000); S.sel.clear(); toast("Borttaget"); load();
 };
@@ -200,7 +219,7 @@ $("csv").onclick = () => {
 function tab(n) { $("vScan").classList.toggle("hide", n !== "scan"); $("vList").classList.toggle("hide", n !== "list"); $("tScan").className = n === "scan" ? "" : "sec"; $("tList").className = n === "list" ? "" : "sec"; }
 $("tScan").onclick = () => tab("scan"); $("tList").onclick = () => tab("list");
 function mode(m) {
-  S.mode = m; $("mQR").className = m === "qr" ? "" : "sec"; $("mOCR").className = m === "ocr" ? "" : "sec"; $("read").classList.toggle("hide", m !== "ocr");
+  S.mode = m; $("mQR").className = m === "qr" ? "" : "sec"; $("mOCR").className = m === "ocr" ? "" : "sec"; $("read").classList.toggle("hide", m !== "ocr"); $("readqr").classList.toggle("hide", m !== "qr"); $("stat").textContent = m === "qr" ? "QR: söker automatiskt" : "OCR: tryck Läs siffror";
   $("hint").textContent = m === "qr" ? "Håll QR-koden inom rutan. Zooma in vid behov. Det läses automatiskt." : "Rikta rutan mot siffrorna och tryck Läs siffror. Kontrollera texten innan du sparar.";
 }
 $("mQR").onclick = () => mode("qr"); $("mOCR").onclick = () => mode("ocr"); mode("qr");
@@ -225,13 +244,29 @@ document.addEventListener("visibilitychange", () => { if (document.hidden) stopC
 
 // ---------- Avläsning ----------
 const detector = ("BarcodeDetector" in window) ? new BarcodeDetector({ formats: ["qr_code"] }) : null;
-async function decodeQR(src, w, h) {
-  const cv = document.createElement("canvas"); cv.width = w; cv.height = h; const cx = cv.getContext("2d", { willReadFrequently: true }); cx.drawImage(src, 0, 0, w, h);
+function zx(cv) {
+  if (typeof ZXing === "undefined") return null;
+  try {
+    const h = new Map(); h.set(ZXing.DecodeHintType.TRY_HARDER, true); h.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.QR_CODE]);
+    const rd = new ZXing.MultiFormatReader(); rd.setHints(h);
+    return rd.decode(new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(new ZXing.HTMLCanvasElementLuminanceSource(cv)))).getText();
+  } catch { return null; }
+}
+async function tryAll(cv) {
   if (detector) { try { const r = await detector.detect(cv); if (r.length) return r[0].rawValue; } catch { } }
-  // Beskuren mitt + hel bild med jsQR
-  for (const [x, y, ww, hh] of [[.2, .2, .6, .6], [0, 0, 1, 1]]) {
-    const d = cx.getImageData(x * w, y * h, ww * w, hh * h);
-    const r = jsQR(d.data, d.width, d.height, { inversionAttempts: "attemptBoth" }); if (r) return r.data;
+  const z = zx(cv); if (z) return z;
+  const d = cv.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, cv.width, cv.height);
+  const r = jsQR(d.data, d.width, d.height, { inversionAttempts: "attemptBoth" }); return r ? r.data : null;
+}
+function cropTo(src, sw, sh, fx, fy, fw, fh, tw) {
+  const c = document.createElement("canvas"); c.width = tw; c.height = Math.round(tw * (fh * sh) / (fw * sw));
+  c.getContext("2d", { willReadFrequently: true }).drawImage(src, fx * sw, fy * sh, fw * sw, fh * sh, 0, 0, c.width, c.height); return c;
+}
+async function decodeQR(src, w, h, heavy) { // heavy = grundlig sökning (knapp/foto)
+  const crops = heavy ? [[.2, .2, .6, .6], [.1, .1, .8, .8], [0, 0, 1, 1], [.3, .3, .4, .4]] : [[.2, .2, .6, .6], [0, 0, 1, 1]];
+  for (const [x, y, fw, fh] of crops) {
+    const c = cropTo(src, w, h, x, y, fw, fh, heavy ? 1400 : 900); let r = await tryAll(c); if (r) return r;
+    if (heavy) for (const k of ["gray", "ad", "inv"]) { r = await tryAll(prep(c, k)); if (r) return r; }
   } return null;
 }
 async function loop() {
@@ -242,7 +277,7 @@ async function loop() {
     S.busy = true;
     try {
       const val = await decodeQR(v, v.videoWidth, v.videoHeight);
-      if (val) { const t = Date.now(); if (val !== S.last || t - S.lastT > 4000) { S.last = val; S.lastT = t; await save(val, "QR"); } else S.lastT = t; }
+      if (val) { const t = Date.now(); if (val !== S.last || t - S.lastT > 4000) { S.last = val; S.lastT = t; await save(val, "QR"); S.lastT = Date.now(); } else S.lastT = t; }
     } finally { S.busy = false; }
   }
 }
@@ -319,11 +354,28 @@ $("file").onchange = async e => {
   const f = e.target.files[0]; e.target.value = ""; if (!f) return;
   const img = await createImageBitmap(f); const sc = Math.min(1, 3000 / Math.max(img.width, img.height));
   const w = Math.round(img.width * sc), h = Math.round(img.height * sc);
-  if (S.mode === "qr") { const val = await decodeQR(img, w, h); val ? save(val, "QR (foto)") : toast("Hittade ingen QR-kod i fotot", 3000); }
+  if (S.mode === "qr") { const val = await decodeQR(img, w, h, true); val ? save(val, "QR (foto)") : toast("Hittade ingen QR-kod i fotot", 3000); }
   else { const cv = document.createElement("canvas"); cv.width = w; cv.height = h; cv.getContext("2d").drawImage(img, 0, 0, w, h); await ocr(cv); }
 };
 $("addm").onclick = () => { const v = $("manual").value.trim(); if (v) { save(v, "Manuell/OCR"); $("manual").value = ""; } };
 
+$("readqr").onclick = async () => {
+  const v = $("vid"); if (!v.videoWidth || S.busy) return; S.busy = true; toast("Söker QR-kod…", 20000);
+  try {
+    const val = await decodeQR(v, v.videoWidth, v.videoHeight, true); $("toast").classList.add("hide");
+    if (val) { S.last = val; S.lastT = Date.now(); await save(val, "QR"); S.lastT = Date.now(); }
+    else toast("Hittade ingen QR-kod – gå närmare, zooma eller använd Ta foto", 4000);
+  } finally { S.busy = false; }
+};
+function over(serial) { const L = S.limit; if (!L) return false; const p = String(serial).replace(/\D/g, "").slice(0, L.length); return p.length > 0 && Number(p) >= Number(L); }
+$("limit").oninput = e => { S.limit = e.target.value.replace(/\D/g, ""); localStorage.setItem("limit_" + S.code, S.limit); render(); };
+function confirmBox(text, yes, danger) {
+  return new Promise(res => {
+    $("mt").textContent = text; $("myes").textContent = yes; $("myes").className = danger ? "bad" : ""; $("modal").classList.remove("hide");
+    $("mno").onclick = () => { $("modal").classList.add("hide"); res(false); };
+    $("myes").onclick = () => { $("modal").classList.add("hide"); res(true); };
+  });
+}
 show();
 </script>
 </body>
