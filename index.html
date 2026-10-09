@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Inläsning - Smarta Lås (V3)</title>
+<title>Inläsning – Smarta Lås</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -77,6 +77,7 @@ td.s{font-variant-numeric:tabular-nums;font-weight:600}
       <button class="sec" id="photo">📷 Ta foto</button>
       <button id="read" class="hide">Läs siffror</button>
     </div>
+    <div class="row" id="cands"></div>
     <div class="row" id="zrow"><span class="fit mut">Zoom</span><input type="range" id="zoom" min="1" max="1" step="0.1"></div>
     <div id="hint" class="mut"></div>
     <div class="card" style="margin-top:12px">
@@ -105,7 +106,9 @@ td.s{font-variant-numeric:tabular-nums;font-weight:600}
 <script>
 // ====== FYLL I DINA UPPGIFTER FRÅN SUPABASE (Project Settings > API) ======
 const SUPABASE_URL = "https://hnjlebibxnkgxubtthff.supabase.co";
-const SUPABASE_KEY = "sb_publishable_XRFCx3Gk8xNV_gLJNIUCmA_433YnsFM";  
+const SUPABASE_KEY = "sb_publishable_XRFCx3Gk8xNV_gLJNIUCmA_433YnsFM";
+// Gratis nyckel från ocr.space/ocrapi (kommer via e-post). "helloworld" är en delad testnyckel med låg gräns.
+const OCR_SPACE_KEY = "helloworld";
 // ==========================================================================
 
 const $ = id => document.getElementById(id);
@@ -188,7 +191,8 @@ function rows() { return [["Serienummer", "Datum och tid", "Skannad av", "Metod"
 const fname = ext => `${S.pname.replace(/[^\w\-åäöÅÄÖ ]/g, "")}_${new Date().toISOString().slice(0, 10)}.${ext}`;
 $("xlsx").onclick = () => { const ws = XLSX.utils.aoa_to_sheet(rows()); ws["!cols"] = [{ wch: 20 }, { wch: 20 }, { wch: 16 }, { wch: 8 }]; const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Lås"); XLSX.writeFile(wb, fname("xlsx")); };
 $("csv").onclick = () => {
-  const csv = "\ufeff" + rows().map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const q = v => { v = String(v); return /[;"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v; };
+  const csv = "\ufeff" + rows().map(r => r.map(q).join(";")).join("\r\n"); // semikolon = svensk Excel delar upp i kolumner
   const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" })); a.download = fname("csv"); a.click();
 };
 
@@ -242,14 +246,68 @@ async function loop() {
     } finally { S.busy = false; }
   }
 }
+function prep(src, kind) {
+  const sc = Math.max(1, 1600 / src.width), w = Math.round(src.width * sc), h = Math.round(src.height * sc);
+  const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+  const cx = cv.getContext("2d", { willReadFrequently: true }); cx.imageSmoothingQuality = "high"; cx.drawImage(src, 0, 0, w, h);
+  const d = cx.getImageData(0, 0, w, h), p = d.data, g = new Float32Array(w * h);
+  for (let i = 0; i < g.length; i++) g[i] = p[4 * i] * .3 + p[4 * i + 1] * .59 + p[4 * i + 2] * .11;
+  let out = new Uint8ClampedArray(w * h);
+  if (kind === "gray") {
+    let mn = 255, mx = 0; for (let i = 0; i < g.length; i++) { if (g[i] < mn) mn = g[i]; if (g[i] > mx) mx = g[i]; }
+    const k = 255 / Math.max(1, mx - mn); for (let i = 0; i < g.length; i++) out[i] = (g[i] - mn) * k;
+  } else { // adaptiv tröskel: klarar blänk och ojämn belysning
+    const W = w + 1, I = new Float64Array(W * (h + 1));
+    for (let y = 0; y < h; y++) { let row = 0; for (let x = 0; x < w; x++) { row += g[y * w + x]; I[(y + 1) * W + x + 1] = I[y * W + x + 1] + row; } }
+    const r = Math.max(8, Math.round(w / 40));
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const x0 = Math.max(0, x - r), x1 = Math.min(w, x + r + 1), y0 = Math.max(0, y - r), y1 = Math.min(h, y + r + 1);
+      const m = (I[y1 * W + x1] - I[y0 * W + x1] - I[y1 * W + x0] + I[y0 * W + x0]) / ((x1 - x0) * (y1 - y0));
+      let v = g[y * w + x] < m - 8 ? 0 : 255; if (kind === "inv") v = 255 - v; out[y * w + x] = v;
+    }
+  }
+  for (let i = 0; i < out.length; i++) p[4 * i] = p[4 * i + 1] = p[4 * i + 2] = out[i];
+  cx.putImageData(d, 0, 0); return cv;
+}
+async function ocrLocal(canvas) { // reserv: läser lokalt i webbläsaren
+  if (!S.w) S.w = await Tesseract.createWorker("eng");
+  const votes = {};
+  for (const [k, psm] of [["gray", "6"], ["ad", "6"], ["inv", "6"], ["ad", "11"]]) {
+    await S.w.setParameters({ tessedit_char_whitelist: "0123456789", tessedit_pageseg_mode: psm });
+    const { data } = await S.w.recognize(prep(canvas, k));
+    (data.text.match(/\d{5,}/g) || []).forEach(n => votes[n] = (votes[n] || 0) + 1);
+  }
+  return Object.entries(votes).sort((a, b) => b[1] - a[1] || b[0].length - a[0].length).map(e => e[0]);
+}
+async function ocrCloud(canvas) { // OCR.space (Engine 2)
+  const sc = Math.min(1, 1800 / Math.max(canvas.width, canvas.height));
+  const cv = document.createElement("canvas"); cv.width = Math.round(canvas.width * sc); cv.height = Math.round(canvas.height * sc);
+  cv.getContext("2d").drawImage(canvas, 0, 0, cv.width, cv.height);
+  let q = .9, url; do { url = cv.toDataURL("image/jpeg", q); q -= .15; } while (url.length > 1.3e6 && q > .3); // max ca 1 MB
+  const fd = new FormData();
+  fd.append("apikey", OCR_SPACE_KEY); fd.append("base64Image", url); fd.append("language", "eng");
+  fd.append("OCREngine", "2"); fd.append("scale", "true"); fd.append("detectOrientation", "true");
+  const j = await (await fetch("https://api.ocr.space/parse/image", { method: "POST", body: fd })).json();
+  if (j.IsErroredOnProcessing) throw new Error([].concat(j.ErrorMessage || "OCR-fel").join(" "));
+  const txt = (j.ParsedResults || []).map(p => p.ParsedText).join("\n"), out = [];
+  txt.split(/\s+/).forEach(t => {
+    if (t.length < 5 || (t.match(/\d/g) || []).length / t.length < .6) return;
+    const m = t.replace(/[Oo]/g, "0").replace(/[Il|]/g, "1").replace(/S/g, "5").replace(/B/g, "8"); // vanliga felläsningar
+    (m.match(/\d{5,}/g) || []).forEach(n => out.push(n));
+  });
+  return [...new Set(out)];
+}
 async function ocr(canvas) {
-  toast("Läser siffror…", 8000);
-  const cx = canvas.getContext("2d"), d = cx.getImageData(0, 0, canvas.width, canvas.height);
-  for (let i = 0; i < d.data.length; i += 4) { const g = d.data[i] * .3 + d.data[i + 1] * .59 + d.data[i + 2] * .11; const c = Math.max(0, Math.min(255, (g - 128) * 1.6 + 128)); d.data[i] = d.data[i + 1] = d.data[i + 2] = c; }
-  cx.putImageData(d, 0, 0);
-  const { data } = await Tesseract.recognize(canvas, "eng", { tessedit_char_whitelist: "0123456789", tessedit_pageseg_mode: "7" });
-  const txt = data.text.replace(/\D/g, ""); $("manual").value = txt; $("toast").classList.add("hide");
-  toast(txt ? "Kontrollera siffrorna och tryck Spara" : "Hittade inga siffror – försök igen", 3500);
+  toast("Läser siffror…", 30000); $("cands").innerHTML = ""; let list = [];
+  try {
+    if (OCR_SPACE_KEY) { try { list = await ocrCloud(canvas); } catch (e) { console.warn(e); toast("Molnläsning misslyckades – provar lokalt…", 2500); } }
+    if (!list.length) list = await ocrLocal(canvas);
+  } catch (e) { return toast("OCR-fel: " + e.message, 4000); }
+  $("toast").classList.add("hide");
+  if (!list.length) return toast("Hittade inga siffror – zooma/lys och försök igen", 3500);
+  $("manual").value = list[0];
+  list.slice(0, 6).forEach(n => { const b = document.createElement("button"); b.className = "sec"; b.textContent = n; b.onclick = () => { save(n, "OCR"); b.remove(); }; $("cands").appendChild(b); });
+  toast(list.length > 1 ? "Flera nummer hittades – tryck på rätt för att spara" : "Kontrollera siffrorna och tryck Spara", 4000);
 }
 $("read").onclick = async () => {
   const v = $("vid"); if (!v.videoWidth) return; const w = v.videoWidth, h = v.videoHeight;
