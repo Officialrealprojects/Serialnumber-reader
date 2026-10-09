@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Inläsning – Smarta Lås</title>
+<title>Inläsning - Smarta Lås (V1)</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%231f5fbf'/%3E%3Cg fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' transform='translate%284 4%29 scale%28.67%29'%3E%3Crect x='3' y='11' width='18' height='11' rx='2'/%3E%3Cpath d='M7 11V7a5 5 0 0 1 10 0v4'/%3E%3C/g%3E%3C/svg%3E">
 <meta name="theme-color" content="#1f2937">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -11,6 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
 :root{--bg:#f4f5f7;--card:#fff;--tx:#1b1f24;--mut:#667085;--ac:#1f5fbf;--bad:#c62828;--ok:#2e7d32;--warn:#a85f00;--bd:#d9dde3}
 @media(prefers-color-scheme:dark){:root{--bg:#14171b;--card:#1c2026;--tx:#e8eaed;--mut:#9aa3ad;--bd:#2c323a;--ac:#5b9bf0;--warn:#d98a1c}}
@@ -57,14 +58,19 @@ h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
 .db{padding:16px}#mval{font-size:24px;font-weight:700;text-align:center;margin:12px 0;letter-spacing:.02em}
 .dlg.err #mval{border-color:var(--bad);color:var(--bad)}
 .found{font-weight:600;margin-top:6px}
-.pal{width:100%;max-height:440px;display:block}
-.pb{fill:#c9b28c}.pbl{fill:#a99169}.pbr{fill:#8f7956}
-.cb{cursor:pointer}.cb polygon{stroke-linejoin:round}
-.o polygon,.h polygon{stroke:var(--card);stroke-width:.8}
-.o .ct{fill:#8fb3e8}.o .cl{fill:#6591d0}.o .cr{fill:#4f79b3}
-.h .ct{fill:#ffc266}.h .cl{fill:#f59e0b}.h .cr{fill:#c77800}
-.e polygon{fill:rgba(127,127,127,.07);stroke:rgba(127,127,127,.3);stroke-width:.5}
-.ax{fill:var(--mut);font-size:11px;text-anchor:middle}
+.tg{display:grid;gap:4px}.tc{aspect-ratio:1/1;border:1px dashed var(--bd);border-radius:4px;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden;color:var(--mut);cursor:pointer;word-break:break-all;line-height:1.1;padding:1px}
+.tc.occ{background:#5b8dd6;border:1px solid #4a78b5;color:#fff;font-weight:600}.tc.hit{background:#f59e0b;border-color:#c77800;color:#fff}
+#palbox{position:relative;width:100%;height:min(62vh,540px);min-height:300px;border-radius:8px;overflow:hidden;border:1px solid var(--bd);background:linear-gradient(180deg,color-mix(in srgb,var(--ac) 11%,var(--card)),var(--card) 75%)}
+#glctl{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:6px;z-index:3}
+#glctl button{width:38px;height:38px;padding:0;border-radius:50%;box-shadow:0 1px 5px rgba(0,0,0,.2)}
+#tip{position:absolute;left:0;top:0;z-index:2;pointer-events:none;background:#1f2937;color:#fff;border-radius:8px;padding:6px 11px;font-size:12px;line-height:1.3;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.35);margin-top:-9px}
+#tip b{display:block;font-size:17px;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+#tip::after{content:"";position:absolute;left:50%;bottom:-6px;margin-left:-6px;border:6px solid transparent;border-bottom:0;border-top-color:#1f2937}
+#palmsg{padding:6px 0}
+.sel{display:flex;gap:12px;align-items:center;justify-content:space-between;border:1px solid var(--bd);border-radius:8px;padding:10px 12px;margin-top:10px;background:var(--bg)}
+.sel .sn{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.02em;line-height:1.2;word-break:break-all}
+.lg{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--mut);margin-top:8px}
+.lg i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}.lg i.g{border:1px dashed var(--mut)}
 </style>
 </head>
 <body>
@@ -73,7 +79,7 @@ h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
 
 <!-- Startvy: skapa/gå med -->
 <div id="home" class="hide">
-  <h1>Inläsning - Smarta Lås (V1)</h1>
+  <h1>Inläsning – Smarta Lås</h1>
   <div class="card">
     <div class="mut">Ditt namn (visas i listan)</div>
     <input type="text" id="name" placeholder="T.ex. Anna">
@@ -130,7 +136,15 @@ h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
     <div class="card"><h4>Sök lås</h4>
       <input type="text" id="q" placeholder="Serienummer (hela eller början)">
       <div class="row" id="qres"></div><div class="found" id="qinfo"></div></div>
-    <div class="card"><div class="row" id="pallnav"></div><div id="palbox"></div><div class="mut" id="palcnt"></div></div>
+    <div class="card"><div class="row" id="pallnav"></div>
+      <div class="seg"><button id="vw3">3D · 360°</button><button id="vwT" class="sec">Fågelperspektiv</button></div>
+      <div class="mut">Välj plan:</div>
+      <div class="row" id="floornav"></div>
+      <div class="row" id="ctl3d"><button class="sec" id="rotL"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>Vänster</button><button class="sec" id="rotR"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>Höger</button><button class="sec" id="spin"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3l14 9-14 9z"/></svg>Auto 360°</button></div>
+      <div id="palmsg" class="mut"></div>
+      <div id="palbox" class="hide"><div id="glctl"><button class="sec" id="zin" aria-label="Zooma in"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M11 8v6M8 11h6"/></svg></button><button class="sec" id="zout" aria-label="Zooma ut"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M8 11h6"/></svg></button><button class="sec" id="rst" aria-label="Återställ vy"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button></div><div id="tip" class="hide"></div></div>
+      <div class="lg"><span><i style="background:#3f78c8"></i>Upptagen</span><span><i style="background:#f59e0b"></i>Valt lås</span><span><i style="background:#8fa6c8"></i>Plan under</span><span><i class="g"></i>Ledig plats</span></div>
+      <div id="cellinfo"></div><div class="mut" id="palcnt" style="margin-top:8px"></div></div>
   </div>
 
   <div id="vList" class="hide">
@@ -240,7 +254,7 @@ async function save(serial, method) {
   }
   if (error) return toast(hint(error), 5000);
   navigator.vibrate?.(80); const p = pos(slot);
-  toast(p ? `Sparad. Placera på pall ${p.p}, X ${p.x}, Y ${p.y}, våning ${p.z}` : `Sparad: ${serial}`, 4000); load();
+  toast(p ? `Sparad. Placera på pall ${p.p}, X ${p.x}, Y ${p.y}, plan ${p.z}` : `Sparad: ${serial}`, 4000); load();
 }
 
 // ---------- Radera (tvåsteg: markera, sedan bekräfta) ----------
@@ -442,11 +456,6 @@ $("sdims").onclick = async () => {
   }
   toast("Pallstorlek sparad"); load();
 };
-function setHit(r) {
-  S.hit = r.id; const p = pos(r.slot);
-  $("qinfo").textContent = p ? `${r.serial}: pall ${p.p}, X ${p.x}, Y ${p.y}, våning ${p.z}` : `${r.serial}: ingen plats – ange pallstorlek först`;
-  if (p) S.pall = p.p - 1; renderPall();
-}
 $("q").oninput = () => {
   const q = $("q").value.trim(), res = $("qres"); res.innerHTML = ""; $("qinfo").textContent = ""; S.hit = null;
   if (!q) return renderPall();
@@ -456,30 +465,297 @@ $("q").oninput = () => {
   $("qinfo").textContent = `${m.length} träffar – välj ett:`;
   m.slice(0, 8).forEach(r => { const b = document.createElement("button"); b.className = "sec"; b.textContent = r.serial; b.onclick = () => setHit(r); res.appendChild(b); }); renderPall();
 };
-$("palbox").onclick = e => { const g = e.target.closest("g[data-id]"); if (!g) return; const r = S.scans.find(x => x.id === g.dataset.id); if (r) { $("q").value = r.serial; $("qres").innerHTML = ""; setHit(r); } };
-function renderPall() {
-  const box = $("palbox");
-  if (!S.dims) { box.innerHTML = '<div class="mut">Ange pallens storlek ovan för att få koordinater och 3D-vy.</div>'; $("pallnav").innerHTML = ""; $("palcnt").textContent = ""; return; }
-  const { x: X, y: Y, z: Z } = S.dims, cap = X * Y * Z, used = S.scans.filter(r => r.slot != null);
-  const np = Math.max(1, ...used.map(r => Math.floor(r.slot / cap) + 1)); S.pall = Math.min(Math.max(S.pall || 0, 0), np - 1);
-  const nav = $("pallnav"); nav.innerHTML = "";
-  if (np > 1) for (let i = 0; i < np; i++) { const b = document.createElement("button"); b.textContent = "Pall " + (i + 1); b.className = i === S.pall ? "" : "sec"; b.onclick = () => { S.pall = i; renderPall(); }; nav.appendChild(b); }
-  const cells = {}; let cnt = 0;
-  used.forEach(r => { const p = pos(r.slot); if (p.p - 1 === S.pall) { cells[`${p.x - 1},${p.y - 1},${p.z - 1}`] = r; cnt++; } });
-  $("palcnt").textContent = `Pall ${S.pall + 1}: ${cnt} av ${cap} platser upptagna. Tryck på ett lås för att se dess plats.`;
-  const a = 16, b = 9, h = 14, st = h + 3, t = 7, pt = (i, j) => [(i - j) * a, (i + j) * b + h];
-  const g0 = pt(0, 0), gx = pt(X, 0), gb = pt(X, Y), gy = pt(0, Y);
-  let out = `<polygon class="pb" points="${g0} ${gx} ${gb} ${gy}"/><polygon class="pbl" points="${gy} ${gb} ${gb[0]},${gb[1] + t} ${gy[0]},${gy[1] + t}"/><polygon class="pbr" points="${gb} ${gx} ${gx[0]},${gx[1] + t} ${gb[0]},${gb[1] + t}"/>`;
-  const L = []; for (let k = 0; k < Z; k++) for (let j = 0; j < Y; j++) for (let i = 0; i < X; i++) L.push([i, j, k]);
-  L.sort((p, q) => (p[0] + p[1] + p[2]) - (q[0] + q[1] + q[2]) || p[2] - q[2]);
-  for (const [i, j, k] of L) {
-    const px = (i - j) * a, py = (i + j) * b - k * st, r = cells[`${i},${j},${k}`], c = !r ? "e" : r.id === S.hit ? "h" : "o";
-    out += `<g class="cb ${c}"${r ? ` data-id="${r.id}"` : ""}>${r ? `<title>${esc(r.serial)}</title>` : ""}<polygon class="ct" points="${px},${py} ${px + a},${py + b} ${px},${py + 2 * b} ${px - a},${py + b}"/><polygon class="cl" points="${px - a},${py + b} ${px},${py + 2 * b} ${px},${py + 2 * b + h} ${px - a},${py + b + h}"/><polygon class="cr" points="${px},${py + 2 * b} ${px + a},${py + b} ${px + a},${py + b + h} ${px},${py + 2 * b + h}"/></g>`;
-  }
-  out += `<text class="ax" x="${(gy[0] + gb[0]) / 2 - 10}" y="${(gy[1] + gb[1]) / 2 + t + 16}">X (${X})</text><text class="ax" x="${(gb[0] + gx[0]) / 2 + 10}" y="${(gb[1] + gx[1]) / 2 + t + 16}">Y (${Y})</text>`;
-  const x0 = -Y * a - 26, y0 = -(Z - 1) * st - 6, w = (X + Y) * a + 52, hh = (X + Y) * b + h + t + 28 + (Z - 1) * st + 6;
-  box.innerHTML = `<svg class="pal" viewBox="${x0} ${y0} ${w} ${hh}">${out}</svg>`;
+// ---------- Pall (3D med three.js) ----------
+Object.assign(S, { yaw: .6, pitch: .55, zoom: 1, floor: 0, view: "3d", spin: false, panX: 0, panZ: 0, hit: null, hitCell: null });
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const wrapA = a => Math.atan2(Math.sin(a), Math.cos(a));
+const CH = .8, FP = .84, LW = .9; // låshöjd, våningshöjd, lådbredd
+const V = { ok: false, failed: false, cache: new Map(), tick: new Map(), cam: { yaw: .6, pitch: .55, dist: 14, tx: 0, ty: 0, tz: 0 }, w: 0, h: 0, raf: 0, last: 0, snap: true, pulse: 0, pick: [], hitPos: null, skey: "", topYaw: 0 };
+const darkQ = window.matchMedia("(prefers-color-scheme: dark)");
+darkQ.addEventListener?.("change", () => { V.skey = ""; renderPall(); });
+
+function setHit(r, keep) {
+  S.hit = r.id; S.hitCell = null; const p = pos(r.slot);
+  $("qinfo").textContent = p ? `${r.serial}: pall ${p.p}, X ${p.x}, Y ${p.y}, plan ${p.z}` : `${r.serial}: ingen plats – ange pallstorlek först`;
+  if (p) { S.pall = p.p - 1; if (!keep) S.floor = p.z; }
+  V.pulse = performance.now() + 2200; renderPall();
 }
+
+// ----- geometri & material -----
+function roundedBox(w, h, d, r, b) { // avrundad låda med fas
+  const x = -(w / 2 - b), y = -(d / 2 - b), W = w - 2 * b, D = d - 2 * b, q = Math.max(.001, r - b), s = new THREE.Shape();
+  s.moveTo(x + q, y); s.lineTo(x + W - q, y); s.quadraticCurveTo(x + W, y, x + W, y + q);
+  s.lineTo(x + W, y + D - q); s.quadraticCurveTo(x + W, y + D, x + W - q, y + D);
+  s.lineTo(x + q, y + D); s.quadraticCurveTo(x, y + D, x, y + D - q);
+  s.lineTo(x, y + q); s.quadraticCurveTo(x, y, x + q, y);
+  const g = new THREE.ExtrudeGeometry(s, { depth: h - 2 * b, bevelEnabled: true, bevelThickness: b, bevelSize: b, bevelOffset: 0, bevelSegments: 3, curveSegments: 6 });
+  g.rotateX(-Math.PI / 2); g.translate(0, b - h / 2, 0); return g;
+}
+function makeWood() {
+  const c = document.createElement("canvas"); c.width = 256; c.height = 64; const g = c.getContext("2d");
+  g.fillStyle = "#cfae78"; g.fillRect(0, 0, 256, 64);
+  for (let i = 0; i < 46; i++) {
+    const y = Math.random() * 64; g.strokeStyle = `rgba(95,62,28,${(.05 + Math.random() * .13).toFixed(3)})`; g.lineWidth = .6 + Math.random() * 1.6;
+    g.beginPath(); g.moveTo(0, y); g.bezierCurveTo(80, y + (Math.random() - .5) * 7, 170, y + (Math.random() - .5) * 7, 256, y + (Math.random() - .5) * 5); g.stroke();
+  }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4;
+  V.wood = [0xffffff, 0xf1e2cc, 0xdcc7a6].map(col => new THREE.MeshStandardMaterial({ map: t, color: col, roughness: .88, metalness: 0 }));
+}
+function rrect(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+function labelMat(serial, hit) { // etikett med serienumrets slut på lådans ovansida
+  const key = (hit ? "h|" : "n|") + serial; let m = V.cache.get(key); if (m) return m;
+  const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d"), s = String(serial), tail = s.slice(-4), head = s.slice(0, -4);
+  g.fillStyle = hit ? "#fff1d6" : "#ffffff"; rrect(g, 4, 4, 120, 120, 14); g.fill(); g.lineWidth = 3; g.strokeStyle = hit ? "#c77800" : "rgba(0,0,0,.22)"; g.stroke();
+  g.textAlign = "center"; g.textBaseline = "middle";
+  if (head) { g.fillStyle = hit ? "#a36100" : "#667085"; g.font = "600 22px system-ui,sans-serif"; g.fillText(head.length > 8 ? "…" + head.slice(-7) : head, 64, 36, 108); }
+  g.fillStyle = hit ? "#6b3b00" : "#1b1f24"; g.font = `700 ${head ? 46 : 54}px system-ui,sans-serif`; g.fillText(tail, 64, head ? 80 : 66, 112);
+  const t = new THREE.CanvasTexture(c); t.anisotropy = 4;
+  m = new THREE.MeshBasicMaterial({ map: t, transparent: true }); V.cache.set(key, m); return m;
+}
+function tickSprite(txt) { // siffror/axeltexter runt pallen
+  const key = txt + "|" + (V.dark ? 1 : 0); let m = V.tick.get(key);
+  if (!m) {
+    const c = document.createElement("canvas"); c.width = 128; c.height = 64; const g = c.getContext("2d");
+    g.font = "600 42px system-ui,sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillStyle = V.dark ? "#aab4c3" : "#667085"; g.fillText(txt, 64, 34);
+    m = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false }); V.tick.set(key, m);
+  }
+  const s = new THREE.Sprite(m); s.scale.set(.9, .45, 1); s.userData.keepMat = true; return s;
+}
+function disposeTree(grp) {
+  grp.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material && !o.userData.keepMat) { o.material.map?.dispose(); o.material.dispose(); } });
+  while (grp.children.length) grp.remove(grp.children[0]);
+}
+
+// ----- start av 3D -----
+function initGL() {
+  if (V.ok) return true; if (V.failed) return false;
+  if (typeof THREE === "undefined") { V.failed = true; return false; }
+  let r; try { r = new THREE.WebGLRenderer({ antialias: true, alpha: true }); } catch (e) { console.warn(e); V.failed = true; return false; }
+  V.r = r; r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); r.setClearColor(0x000000, 0);
+  r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap;
+  const el = r.domElement; el.style.cssText = "display:block;width:100%;height:100%;touch-action:none;cursor:grab";
+  const box = $("palbox"); box.insertBefore(el, box.firstChild);
+  V.scene = new THREE.Scene(); V.camera = new THREE.PerspectiveCamera(32, 1, .5, 400);
+  V.scene.add(new THREE.HemisphereLight(0xffffff, 0x9aa3b2, .62));
+  const sun = V.sun = new THREE.DirectionalLight(0xffffff, .58), ms = window.matchMedia("(pointer:coarse)").matches ? 1024 : 2048;
+  sun.castShadow = true; sun.shadow.mapSize.set(ms, ms); sun.shadow.bias = -.0004; sun.shadow.normalBias = .02; V.scene.add(sun, sun.target);
+  V.stat = new THREE.Group(); V.dyn = new THREE.Group(); V.scene.add(V.stat, V.dyn);
+  V.lockGeo = roundedBox(LW, CH, LW, .1, .045); V.boxGeo = new THREE.BoxGeometry(LW, CH, LW); V.edgeGeo = new THREE.EdgesGeometry(V.boxGeo); V.labGeo = new THREE.PlaneGeometry(.62, .62);
+  V.mOcc = new THREE.MeshStandardMaterial({ color: 0x3f78c8, roughness: .5, metalness: .08 });
+  V.mDim = new THREE.MeshStandardMaterial({ color: 0x8fa6c8, roughness: .7, metalness: 0 });
+  V.mHit = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: .4, emissive: 0xb45f00, emissiveIntensity: .5 });
+  V.mGhost = new THREE.MeshBasicMaterial({ color: 0x8a93a6, transparent: true, opacity: .09, depthWrite: false });
+  V.mGhostSel = new THREE.MeshBasicMaterial({ color: 0xf59e0b, transparent: true, opacity: .4, depthWrite: false });
+  V.mEdge = new THREE.LineBasicMaterial({ color: 0x8a93a6, transparent: true, opacity: .55 });
+  V.ray = new THREE.Raycaster(); V.ndc = new THREE.Vector2();
+  makeWood(); bindGL(el); V.ok = true;
+  new ResizeObserver(() => resize()).observe(box); resize(); return true;
+}
+function resize() {
+  if (!V.ok) return; const b = $("palbox"), w = b.clientWidth, h = b.clientHeight; if (!w || !h || (w === V.w && h === V.h)) return;
+  V.w = w; V.h = h; V.r.setSize(w, h, false); V.camera.aspect = w / h; V.camera.updateProjectionMatrix(); V.snap = true; kick();
+}
+
+// ----- bygg scenen -----
+function buildStatic() { // pall, golv, axlar (byggs om vid ny storlek/tema)
+  const { x: X, y: Y, z: Z } = S.dims, dark = darkQ.matches, key = [X, Y, Z, dark ? 1 : 0].join();
+  if (V.skey === key) return; V.skey = key; V.dark = dark; disposeTree(V.stat);
+  const st = V.stat, W = X + .7, D = Y + .7, wd = n => V.wood[(n * 5 + 1) % 3];
+  const add = (w, h, d, x, y, z, m) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); o.castShadow = o.receiveShadow = true; o.userData.keepMat = true; st.add(o); };
+  const n = Math.max(5, Math.ceil(D / .95)), bw = D / n, gap = Math.min(.14, bw * .22);
+  for (let i = 0; i < n; i++) add(W, .07, bw - gap, 0, -.035, -D / 2 + bw * (i + .5), wd(i));
+  const bs = clamp(Math.min(W, D) * .12, .35, .7), xs = [-(W / 2 - bs / 2), 0, W / 2 - bs / 2], zs = [-(D / 2 - bs / 2), 0, D / 2 - bs / 2];
+  xs.forEach((x, a) => zs.forEach((z, b) => add(bs, .16, bs, x, -.15, z, wd(a + b * 3 + 2))));
+  zs.forEach((z, b) => add(W, .06, bs, 0, -.26, z, wd(b + 7)));
+  // golv: mjuk skiva + skugga
+  const GR = Math.hypot(W, D) * .95 + 3, c = document.createElement("canvas"); c.width = c.height = 256; const g = c.getContext("2d");
+  const col = dark ? "44,51,60" : "226,231,238", gr = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+  gr.addColorStop(0, `rgba(${col},.95)`); gr.addColorStop(.55, `rgba(${col},.9)`); gr.addColorStop(1, `rgba(${col},0)`); g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
+  const disc = new THREE.Mesh(new THREE.CircleGeometry(GR, 48), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(c), transparent: true, depthWrite: false }));
+  disc.rotation.x = -Math.PI / 2; disc.position.y = -.295; st.add(disc);
+  const sh = new THREE.Mesh(new THREE.PlaneGeometry(GR * 2, GR * 2), new THREE.ShadowMaterial({ opacity: dark ? .45 : .24 }));
+  sh.rotation.x = -Math.PI / 2; sh.position.y = -.29; sh.receiveShadow = true; st.add(sh);
+  // axelsiffror
+  const stp = X > 24 ? 5 : X > 12 ? 2 : 1, stq = Y > 24 ? 5 : Y > 12 ? 2 : 1;
+  for (let i = 0; i < X; i++) if (i === 0 || (i + 1) % stp === 0) { const s = tickSprite(String(i + 1)); s.position.set(i + .5 - X / 2, -.08, Y / 2 + .85); st.add(s); }
+  for (let j = 0; j < Y; j++) if (j === 0 || (j + 1) % stq === 0) { const s = tickSprite(String(j + 1)); s.position.set(-X / 2 - .85, -.08, Y / 2 - j - .5); st.add(s); }
+  const tx = tickSprite("X →"); tx.position.set(0, -.08, Y / 2 + 1.55); st.add(tx);
+  const ty = tickSprite("Y ↑"); ty.position.set(-X / 2 - 1.6, -.08, 0); st.add(ty);
+  // ljus & skuggor
+  const R = Math.hypot(X / 2 + 1, Y / 2 + 1, Z * FP / 2 + .5), sc = V.sun.shadow.camera;
+  sc.left = sc.bottom = -R * 1.05; sc.right = sc.top = R * 1.05; sc.near = .5; sc.far = R * 6; sc.updateProjectionMatrix();
+  V.sun.position.set(-R * .5, R * 2.2, R * .9); V.sun.target.position.set(0, Z * FP * .4, 0); V.sun.target.updateMatrixWorld();
+}
+function buildLocks(cells) { // alla lås (byggs om vid ändring/val)
+  const { x: X, y: Y, z: Z } = S.dims, g = V.dyn, lift = .12, ghosts = X * Y <= 900;
+  while (g.children.length) g.remove(g.children[0]);
+  if (V.cache.size > 600) { V.cache.forEach(m => { m.map.dispose(); m.dispose(); }); V.cache.clear(); }
+  V.pick = []; V.hitPos = null;
+  const cx = i => i + .5 - X / 2, cz = j => Y / 2 - j - .5;
+  for (let k = 0; k < Z; k++) {
+    if (S.floor && k > S.floor - 1) break;
+    const cur = S.floor === k + 1, base = k * FP;
+    for (let j = 0; j < Y; j++) for (let i = 0; i < X; i++) {
+      const r = cells[`${i},${j},${k}`];
+      if (r) {
+        const hit = r.id === S.hit, up = hit ? lift : 0;
+        const m = new THREE.Mesh(V.lockGeo, hit ? V.mHit : (S.floor && !cur ? V.mDim : V.mOcc));
+        m.position.set(cx(i), base + CH / 2 + .003 + up, cz(j)); m.castShadow = m.receiveShadow = true; m.userData = { id: r.id }; g.add(m); V.pick.push(m);
+        const covered = cells[`${i},${j},${k + 1}`] && (!S.floor || k + 1 < S.floor);
+        if (!covered) { const l = new THREE.Mesh(V.labGeo, labelMat(r.serial, hit)); l.rotation.x = -Math.PI / 2; l.position.set(cx(i), base + CH + .008 + up, cz(j)); g.add(l); }
+        if (hit) V.hitPos = new THREE.Vector3(cx(i), base + CH + up + .02, cz(j));
+      } else if (cur && ghosts) {
+        const key = `${i},${j},${k}`, sel = S.hitCell === key;
+        const m = new THREE.Mesh(V.boxGeo, sel ? V.mGhostSel : V.mGhost); m.position.set(cx(i), base + CH / 2, cz(j)); m.userData = { cell: key };
+        m.add(new THREE.LineSegments(V.edgeGeo, V.mEdge)); g.add(m); V.pick.push(m);
+        if (sel) V.hitPos = new THREE.Vector3(cx(i), base + CH + .02, cz(j));
+      }
+    }
+  }
+}
+
+// ----- kamera & animation -----
+function goalCam() {
+  const { x: X, y: Y, z: Z } = S.dims, shown = S.floor || Z, top = (shown - 1) * FP + CH;
+  const asp = V.w && V.h ? V.w / V.h : 1, vf = V.camera.fov * Math.PI / 180, hf = 2 * Math.atan(Math.tan(vf / 2) * asp);
+  if (S.view === "top") {
+    const need = Math.max((Y / 2 + 1.4) / Math.tan(vf / 2), (X / 2 + 1.4) / Math.tan(hf / 2));
+    return { yaw: V.topYaw, pitch: 1.565, dist: need / S.zoom, tx: S.panX, ty: top, tz: S.panZ };
+  }
+  const R = Math.hypot(X / 2 + .9, Y / 2 + .9, (top + .3) / 2);
+  return { yaw: S.yaw, pitch: S.pitch, dist: R / Math.sin(Math.min(vf, hf) / 2) * .9 / S.zoom, tx: 0, ty: top / 2 - .1, tz: 0 };
+}
+function applyCam() {
+  const c = V.cam, cp = Math.cos(c.pitch), sp = Math.sin(c.pitch);
+  V.camera.position.set(c.tx + c.dist * cp * Math.sin(c.yaw), c.ty + c.dist * sp, c.tz + c.dist * cp * Math.cos(c.yaw)); V.camera.lookAt(c.tx, c.ty, c.tz);
+}
+function updateTip() {
+  const tip = $("tip"); if (!V.hitPos || !V.w) return tip.classList.add("hide");
+  const v = V.hitPos.clone().project(V.camera); if (v.z > 1 || v.z < -1) return tip.classList.add("hide");
+  tip.classList.remove("hide");
+  const x = clamp((v.x * .5 + .5) * V.w, 56, V.w - 56), y = clamp((-v.y * .5 + .5) * V.h, 52, V.h - 8);
+  tip.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px) translate(-50%,-100%)`;
+}
+function kick() { if (V.raf || !V.ok) return; V.last = performance.now(); V.raf = requestAnimationFrame(frame); }
+function frame(t) {
+  V.raf = 0; if (!V.ok || !S.dims) return;
+  if ($("vPal").classList.contains("hide")) { if (S.spin) { S.spin = false; $("spin").className = "sec"; } return; }
+  if (!V.w) return;
+  const dt = Math.min(.05, Math.max(0, (t - V.last) / 1000)); V.last = t;
+  if (S.spin && S.view === "3d") S.yaw += dt * .5;
+  const g = goalCam(), c = V.cam, f = V.snap ? 1 : 1 - Math.exp(-dt * 10); V.snap = false; let mv = false;
+  for (const k of ["yaw", "pitch", "dist", "tx", "ty", "tz"]) { const d = g[k] - c[k]; if (Math.abs(d) > (k === "dist" ? .008 : .0008)) { c[k] += d * f; mv = true; } else c[k] = g[k]; }
+  applyCam(); V.mHit.emissiveIntensity = t < V.pulse ? .5 + .4 * Math.sin(t / 120) : .5;
+  V.r.render(V.scene, V.camera); updateTip();
+  if (mv || (S.spin && S.view === "3d") || t < V.pulse) kick();
+}
+
+// ----- interaktion -----
+function zoomBy(f) { S.zoom = clamp(S.zoom * f, .5, 8); kick(); }
+function pickAt(e) {
+  const b = V.r.domElement.getBoundingClientRect();
+  V.ndc.set(((e.clientX - b.left) / b.width) * 2 - 1, -((e.clientY - b.top) / b.height) * 2 + 1); V.ray.setFromCamera(V.ndc, V.camera);
+  const h = V.ray.intersectObjects(V.pick, false)[0]; return h ? h.object.userData : null;
+}
+function onPick(u) {
+  if (!u) { if (S.hit || S.hitCell) { S.hit = null; S.hitCell = null; $("qinfo").textContent = ""; renderPall(); } return; }
+  if (u.id) { const r = S.scans.find(x => x.id === u.id); if (r) { $("q").value = r.serial; $("qres").innerHTML = ""; setHit(r, true); } }
+  else { S.hit = null; S.hitCell = u.cell; $("qinfo").textContent = ""; renderPall(); }
+}
+function bindGL(el) {
+  const ptrs = new Map(); let moved = 0, pinch = 0;
+  el.addEventListener("pointerdown", e => {
+    try { el.setPointerCapture(e.pointerId); } catch { }
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (ptrs.size === 1) moved = 0; else { moved = 99; const [a, b] = [...ptrs.values()]; pinch = Math.hypot(a.x - b.x, a.y - b.y); }
+    if (S.spin) { S.spin = false; $("spin").className = "sec"; } el.style.cursor = "grabbing";
+  });
+  el.addEventListener("pointermove", e => {
+    const p = ptrs.get(e.pointerId); if (!p) return;
+    const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
+    if (ptrs.size >= 2) { const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y); if (pinch) zoomBy(d / pinch); pinch = d; return; }
+    moved += Math.abs(dx) + Math.abs(dy); if (moved < 6) return;
+    if (S.view === "3d") { S.yaw -= dx * .009; S.pitch = clamp(S.pitch + dy * .006, .08, 1.45); }
+    else { const k = 2 * V.cam.dist * Math.tan(V.camera.fov * Math.PI / 360) / V.h, lim = Math.max(S.dims.x, S.dims.y); S.panX = clamp(S.panX - dx * k, -lim, lim); S.panZ = clamp(S.panZ - dy * k, -lim, lim); }
+    V.snap = true; kick();
+  });
+  const up = e => {
+    const was = ptrs.has(e.pointerId); ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = 0; el.style.cursor = "grab";
+    if (e.type === "pointerup" && was && ptrs.size === 0 && moved < 6) onPick(pickAt(e));
+  };
+  el.addEventListener("pointerup", up); el.addEventListener("pointercancel", up);
+  el.addEventListener("wheel", e => { e.preventDefault(); zoomBy(e.deltaY < 0 ? 1.12 : .89); }, { passive: false });
+  el.addEventListener("webglcontextlost", e => e.preventDefault());
+  el.addEventListener("webglcontextrestored", () => { V.skey = ""; renderPall(); });
+}
+function setView(v) {
+  if (S.view === v) return; const c = V.cam, tp = 2 * Math.PI;
+  if (v === "top") V.topYaw = Math.round(c.yaw / tp) * tp; else S.yaw = c.yaw + wrapA(S.yaw - c.yaw);
+  S.view = v; S.zoom = 1; S.panX = S.panZ = 0; S.spin = false; $("spin").className = "sec"; renderPall();
+}
+$("vw3").onclick = () => setView("3d"); $("vwT").onclick = () => setView("top");
+$("rotL").onclick = () => { S.yaw += Math.PI / 4; kick(); }; $("rotR").onclick = () => { S.yaw -= Math.PI / 4; kick(); };
+$("zin").onclick = () => zoomBy(1.25); $("zout").onclick = () => zoomBy(.8);
+$("rst").onclick = () => { S.zoom = 1; S.panX = S.panZ = 0; if (S.view === "3d") { S.yaw = V.cam.yaw + wrapA(.6 - V.cam.yaw); S.pitch = .55; } kick(); };
+$("spin").onclick = () => { if (S.view !== "3d") setView("3d"); S.spin = !S.spin; $("spin").className = S.spin ? "on" : "sec"; if (S.spin) kick(); };
+
+// ----- panel för valt lås -----
+function showSel() {
+  const ci = $("cellinfo"), tip = $("tip"); tip.classList.add("hide");
+  const r = S.hit && S.scans.find(x => x.id === S.hit);
+  if (r) {
+    const p = pos(r.slot), where = p ? `Pall ${p.p} · plan ${p.z} · X ${p.x} · Y ${p.y}` : "Ingen plats ännu";
+    ci.innerHTML = `<div class="sel"><div><div class="mut">Valt lås</div><div class="sn">${esc(r.serial)}</div><div class="mut">${esc(where)} · skannad ${esc(fmt(r.scanned_at))}${r.scanned_by ? " av " + esc(r.scanned_by) : ""}</div></div><button class="sec fit" id="cps">Kopiera</button></div>`;
+    $("cps").onclick = () => { navigator.clipboard?.writeText(r.serial); toast("Serienumret kopierat", 1500); };
+    tip.innerHTML = `<b>${esc(r.serial)}</b><span>${esc(where)}</span>`;
+  } else if (S.hitCell) {
+    const [i, j, k] = S.hitCell.split(",").map(Number), t = `X ${i + 1} · Y ${j + 1} · plan ${k + 1}`;
+    ci.innerHTML = `<div class="sel"><div><div class="mut">Vald plats</div><div class="sn">Ledig</div><div class="mut">${t}</div></div></div>`;
+    tip.innerHTML = `<b>Ledig plats</b><span>${t}</span>`;
+  } else ci.innerHTML = "";
+}
+
+// ----- reservvy om 3D inte startar: enkelt rutnät -----
+function renderGrid(cells, X, Y) {
+  const f = S.floor || 1, fs = clamp(Math.round(110 / X), 8, 14);
+  let h = `<div class="mut" style="margin-bottom:6px">3D-vyn kunde inte startas – visar enkel rutnätsvy av plan ${f}.</div><div class="tg" style="grid-template-columns:repeat(${X},1fr);font-size:${fs}px">`;
+  for (let j = Y - 1; j >= 0; j--) for (let i = 0; i < X; i++) {
+    const r = cells[`${i},${j},${f - 1}`];
+    h += r ? `<div class="tc ${r.id === S.hit ? "hit" : "occ"}" data-id="${r.id}" title="${esc(r.serial)}">${esc(r.serial.length > 6 ? "…" + r.serial.slice(-5) : r.serial)}</div>` : `<div class="tc" data-cell="${i},${j},${f - 1}"></div>`;
+  }
+  $("palmsg").innerHTML = h + `</div>`;
+}
+$("palmsg").onclick = e => {
+  const g = e.target.closest("[data-id],[data-cell]"); if (!g) return;
+  if (g.dataset.id) { const r = S.scans.find(x => x.id === g.dataset.id); if (r) { $("q").value = r.serial; $("qres").innerHTML = ""; setHit(r, true); } }
+  else { S.hit = null; S.hitCell = g.dataset.cell; renderPall(); }
+};
+
+// ----- huvudfunktion -----
+function renderPall() {
+  if ($("vPal").classList.contains("hide")) return; // ritas när fliken öppnas
+  const box = $("palbox"), msg = $("palmsg");
+  if (!S.dims) {
+    box.classList.add("hide"); msg.classList.remove("hide"); msg.textContent = "Ange pallens storlek ovan för att få koordinater och 3D-vy.";
+    for (const id of ["pallnav", "floornav", "cellinfo"]) $(id).innerHTML = ""; $("palcnt").textContent = ""; $("ctl3d").classList.add("hide"); return;
+  }
+  const { x: X, y: Y, z: Z } = S.dims, cap = X * Y * Z, used = S.scans.filter(r => r.slot != null);
+  const np = Math.max(1, ...used.map(r => Math.floor(r.slot / cap) + 1)); S.pall = clamp(S.pall || 0, 0, np - 1); if (S.floor > Z) S.floor = 0;
+  const cells = {}, fc = Array(Z).fill(0); let cnt = 0, lastSlot = -1, lastZ = 1;
+  used.forEach(r => { const p = pos(r.slot); if (p.p - 1 !== S.pall) return; cells[`${p.x - 1},${p.y - 1},${p.z - 1}`] = r; fc[p.z - 1]++; cnt++; if (r.slot > lastSlot) { lastSlot = r.slot; lastZ = p.z; } });
+  if (S.view === "top" && !S.floor) S.floor = lastZ; // fågelperspektiv: börja på planet du fyller just nu
+  if (S.hit) { const hr = S.scans.find(r => r.id === S.hit), hp = hr && pos(hr.slot); if (!hp || hp.p - 1 !== S.pall) S.hit = null; }
+  const nb = (id, items, cur, fn) => { const n = $(id); n.innerHTML = ""; items.forEach(([lab, v]) => { const b = document.createElement("button"); b.textContent = lab; b.className = v === cur ? "" : "sec"; b.onclick = () => fn(v); n.appendChild(b); }); };
+  nb("pallnav", np > 1 ? Array.from({ length: np }, (_, i) => ["Pall " + (i + 1), i]) : [], S.pall, v => { S.pall = v; renderPall(); });
+  nb("floornav", [...(S.view === "3d" ? [["Alla plan", 0]] : []), ...Array.from({ length: Z }, (_, i) => [`Plan ${i + 1} · ${fc[i]}/${X * Y}`, i + 1])], S.floor, v => { S.floor = v; renderPall(); });
+  $("vw3").className = S.view === "3d" ? "" : "sec"; $("vwT").className = S.view === "top" ? "" : "sec"; $("ctl3d").classList.toggle("hide", S.view !== "3d");
+  $("palcnt").textContent = `Pall ${S.pall + 1}: ${cnt} av ${cap} platser upptagna.` + (S.floor ? ` Plan ${S.floor}: ${fc[S.floor - 1]} av ${X * Y}.` : "") + " " +
+    (S.view === "3d" ? "Dra för att rotera 360°, nyp eller scrolla för att zooma. Tryck på ett lås för att se serienumret." : `Tryck på ett lås för att se serienumret. Dra för att flytta, nyp eller scrolla för att zooma. X 1–${X} åt höger, Y 1–${Y} nedifrån och upp.`);
+  msg.classList.add("hide"); box.classList.remove("hide");
+  if (!initGL()) { box.classList.add("hide"); msg.classList.remove("hide"); $("ctl3d").classList.add("hide"); renderGrid(cells, X, Y); showSel(); return; }
+  resize(); buildStatic(); buildLocks(cells); showSel(); kick();
+}
+
 show();
 </script>
 </body>
