@@ -56,6 +56,7 @@ h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
 .dup{background:var(--bad)}.wr{background:var(--warn)}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}.chips>.mut{flex-basis:100%}
 .chip{display:inline-flex;align-items:center;border:1px solid var(--bd);border-radius:6px;padding-left:9px;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--tx);background:var(--bg)}
+.chips button.pl{padding:7px 12px;font-size:15px}.chips button.pl.sec{color:var(--tx)}
 .chip button{padding:5px 10px;border:0;background:none;color:var(--mut);font-size:18px;line-height:1}
 #toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#1f2937;color:#fff;padding:10px 16px;border-radius:6px;z-index:9;max-width:90%}
 #modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:10;padding:20px}
@@ -183,8 +184,14 @@ h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
   <div id="vList" class="hide">
     <div class="row">
       <button id="xlsx"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Exportera Excel</button>
-      <button class="sec" id="csv"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Exportera CSV</button>
+      <button class="sec" id="csv"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Exportera CSV (Google Kalkylark)</button>
       <button class="bad fit" id="del" disabled>Ta bort (0)</button>
+    </div>
+    <div class="card hide" id="plansel">
+      <b>Plan att ladda ner</b>
+      <div class="mut">Tryck på de plan du vill ha med i Excel/CSV. Inget valt = alla plan.</div>
+      <div class="chips" id="planchips" style="margin-top:8px"></div>
+      <div class="mut" id="planinfo" style="margin-top:6px"></div>
     </div>
     <div class="card" style="overflow-x:auto">
       <table><thead><tr><th><input type="checkbox" id="all"></th><th>Serienummer</th><th>Plats</th><th>Datum &amp; tid</th><th>Av</th><th></th></tr></thead><tbody id="rows"></tbody></table>
@@ -292,7 +299,7 @@ function render() {
     const ed = document.createElement("td"), eb = document.createElement("button"); eb.className = "sec"; eb.style.padding = "6px 9px"; eb.setAttribute("aria-label", "Redigera " + r.serial);
     eb.innerHTML = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>'; eb.onclick = () => editScan(r); ed.appendChild(eb);
     tr.append(c, s, pz, t, b, ed); tb.appendChild(tr);
-  }); upd(); renderPall();
+  }); upd(); renderPall(); renderPlans();
 }
 function upd() { $("del").textContent = `Ta bort (${S.sel.size})`; $("del").disabled = !S.sel.size; $("all").checked = S.scans.length > 0 && S.sel.size === S.scans.length; }
 $("all").onchange = e => { S.sel = e.target.checked ? new Set(S.scans.map(r => r.id)) : new Set(); render(); };
@@ -347,11 +354,25 @@ $("del").onclick = async () => {
 };
 
 // ---------- Export ----------
+// Val av plan vid export: plan = våning (V i platsen). Inget valt eller bara ett plan = alla.
+S.planSel = new Set();
+const planOf = r => { const p = pos(r.slot); return p ? p.z : 0; }; // 0 = saknar plats
+function renderPlans() {
+  const cnt = {}; S.scans.forEach(r => { const z = planOf(r); cnt[z] = (cnt[z] || 0) + 1; });
+  const ks = Object.keys(cnt).map(Number).sort((a, b) => (a || 1e9) - (b || 1e9)), plans = ks.filter(z => z);
+  S.planSel = new Set([...S.planSel].filter(z => cnt[z])); // plan som inte längre finns släpps
+  $("plansel").classList.toggle("hide", plans.length < 2); const box = $("planchips"); box.innerHTML = "";
+  if (plans.length < 2) { S.planSel.clear(); return; }
+  ks.forEach(z => { const b = document.createElement("button"), on = S.planSel.has(z); b.className = "pl" + (on ? "" : " sec"); b.setAttribute("aria-pressed", on);
+    b.textContent = (z ? `Plan ${z}` : "Utan plats") + ` (${cnt[z]})`; b.onclick = () => { on ? S.planSel.delete(z) : S.planSel.add(z); renderPlans(); }; box.appendChild(b); });
+  const n = S.scans.filter(r => !S.planSel.size || S.planSel.has(planOf(r))).length;
+  $("planinfo").textContent = S.planSel.size ? `Laddar ner ${[...S.planSel].sort((a, b) => (a || 1e9) - (b || 1e9)).map(z => z ? "plan " + z : "lås utan plats").join(", ")}: ${n} lås.` : `Inget valt – alla plan laddas ner (${n} lås).`;
+}
 function rows() {
-  const a = [...S.scans].sort((p, q) => new Date(p.scanned_at) - new Date(q.scanned_at)); // äldst först
+  const a = [...S.scans].filter(r => !S.planSel.size || S.planSel.has(planOf(r))).sort((p, q) => new Date(p.scanned_at) - new Date(q.scanned_at)); // äldst först
   return [["Nr", "Serienummer", "Plats", "Datum och tid", "Skannad av", "Metod"], ...a.map((r, i) => [i + 1, String(r.serial), posTxt(pos(r.slot)), fmt(r.scanned_at), r.scanned_by || "", r.method || ""])];
 }
-const fname = ext => `${S.pname.replace(/[^\w\-åäöÅÄÖ ]/g, "")}_${new Date().toISOString().slice(0, 10)}.${ext}`;
+const fname = ext => `${S.pname.replace(/[^\w\-åäöÅÄÖ ]/g, "")}${S.planSel.size ? "_plan" + [...S.planSel].sort((a, b) => a - b).map(z => z || "utan").join("-") : ""}_${new Date().toISOString().slice(0, 10)}.${ext}`;
 $("xlsx").onclick = () => { const ws = XLSX.utils.aoa_to_sheet(rows()); ws["!cols"] = [{ wch: 6 }, { wch: 22 }, { wch: 18 }, { wch: 20 }, { wch: 16 }, { wch: 14 }]; const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Lås"); XLSX.writeFile(wb, fname("xlsx")); };
 $("csv").onclick = () => {
   const q = v => { v = String(v); return /[;"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v; };
@@ -380,7 +401,7 @@ function initZoom() { // vid kamerastart och lägesbyte. Sifferläget startar in
 }
 function mode(m) {
   S.mode = m; $("mQR").className = m === "qr" ? "" : "sec"; $("mOCR").className = m === "ocr" ? "" : "sec"; $("read").classList.toggle("hide", m !== "ocr"); $("readqr").classList.toggle("hide", m !== "qr"); $("stat").textContent = m === "qr" ? "QR: söker automatiskt" : "OCR: läser automatiskt"; $("box").classList.toggle("line", m === "ocr"); initZoom();
-  $("hint").textContent = m === "qr" ? "Håll QR-koden inom rutan och vänta tills bilden är skarp. Små graverade koder: håll telefonen 15–25 cm bort och zooma in med reglaget i stället för att gå nära, och vinkla låset så att blänket försvinner. Det läses automatiskt, eller tryck Läs QR. Fungerar det ändå inte: tryck Ta foto (iPhone-kameran fokuserar bäst på nära håll) eller använd iPhone-genvägen nedan." : "Håll telefonen 15–25 cm från låset och zooma in med reglaget i stället för att gå nära – då blir små siffror skarpa. Sikta så att sifferraden ligger i den avlånga rutan och håll stilla. Numret läses automatiskt och du bekräftar en gång. Vinkla lite för att slippa blänk. Går det inte: tryck på bilden för att fokusera om, välj en annan kamera i listan Kamera, tryck Läs siffror eller Ta foto.";
+  $("hint").textContent = m === "qr" ? "Håll QR-koden mitt i rutan. Statusraden visar om bilden är skarp. Webbsidan kan inte byta till närbildslinsen som iPhone-kameran gör, så gå inte för nära: med Bakre kamera, håll telefonen ca 20 cm från låset – koden får gärna vara liten, den läses ändå om bilden är skarp. Vill du gå nära: välj Bakre ultravidvinkelkamera i listan Kamera. Vinkla låset så att blänket försvinner. Det läses automatiskt, eller tryck Läs QR. Fungerar det ändå inte: tryck Ta foto (iPhone-kameran fokuserar bäst på nära håll) eller använd iPhone-genvägen nedan." : "Håll telefonen 15–25 cm från låset och zooma in med reglaget i stället för att gå nära – då blir små siffror skarpa. Sikta så att sifferraden ligger i den avlånga rutan och håll stilla. Numret läses automatiskt och du bekräftar en gång. Vinkla lite för att slippa blänk. Går det inte: tryck på bilden för att fokusera om, välj en annan kamera i listan Kamera, tryck Läs siffror eller Ta foto.";
   if (m === "ocr") { ppInit().catch(() => { }); live(); } // AI-läsmotorn laddas i förväg
 }
 $("mQR").onclick = () => mode("qr"); $("mOCR").onclick = () => mode("ocr"); mode("qr");
@@ -451,6 +472,18 @@ async function tryAll(cv) {
   const d = cv.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, cv.width, cv.height);
   const r = jsQR(d.data, d.width, d.height, { inversionAttempts: "attemptBoth" }); return r ? r.data : null;
 }
+// ---------- Skärpa och avsuddning för små QR-koder ----------
+// Avkodaren läser koder ner till ca 45 px om bilden är skarp. Problemet på nära håll är fokus (iPhone-kameran byter själv till närbildslinsen, det får en webbsida inte göra),
+// så appen mäter skärpan och säger i statusraden vad som behövs.
+function grayOf(c) { const d = c.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, c.width, c.height).data, g = new Float32Array(c.width * c.height); for (let i = 0; i < g.length; i++) g[i] = d[4 * i] * .3 + d[4 * i + 1] * .59 + d[4 * i + 2] * .11 + 1; return g; }
+function blurEst(src, w, h) { // uppskattad oskärpa (px) i bildens mitt: kontrast / (2,5 x de brantaste kanterna)
+  const s = Math.min(w, h) / (src === $("vid") ? Z.sw : 1), W = Math.round(Math.min(480, s * .5)), c = cropTo(src, w, h, (w - W) / 2 / w, (h - W) / 2 / h, W / w, W / h, W), g = grayOf(c);
+  const hist = new Uint32Array(257), gh = new Uint32Array(512); for (let i = 0; i < g.length; i++) hist[Math.min(256, g[i] | 0)]++;
+  let a = 0, lo = 0, hi = 256; for (; lo < 256 && (a += hist[lo]) < g.length * .03; lo++); a = 0; for (; hi > 0 && (a += hist[hi]) < g.length * .03; hi--);
+  for (let y = 1; y < W - 1; y++) for (let x = 1; x < W - 1; x++) { const i = y * W + x; gh[Math.min(511, Math.hypot((g[i + 1] - g[i - 1]) / 2, (g[i + W] - g[i - W]) / 2) | 0)]++; }
+  let n = 0, top = 511; for (; top > 0 && (n += gh[top]) < (W - 2) * (W - 2) * .003; top--);
+  return { sigma: (hi - lo) / (2.5 * Math.max(1, top)), range: hi - lo };
+}
 function cropTo(src, sw, sh, fx, fy, fw, fh, tw) {
   const c = document.createElement("canvas"); c.width = tw; c.height = Math.round(tw * (fh * sh) / (fw * sw));
   c.getContext("2d", { willReadFrequently: true }).drawImage(src, fx * sw, fy * sh, fw * sw, fh * sh, 0, 0, c.width, c.height); return c;
@@ -499,7 +532,11 @@ async function loop() {
     await new Promise(r => setTimeout(r, 160));
     if (S.mode !== "qr" || S.busy || $("vScan").classList.contains("hide") || !v.videoWidth) continue;
     S.busy = true; S.fr = (S.fr || 0) + 1;
-    if (S.fr % 8 === 1) $("stat").textContent = `QR: söker · ${v.videoWidth}x${v.videoHeight} ${typeof ZXingWASM !== "undefined" && !S.zwOff ? "ZXC " : ""}${detector ? "BD " : ""}${typeof ZXing !== "undefined" ? "ZX " : ""}jsQR`;
+    if (S.fr % 4 === 1) try { // skärpan mäts var 4:e bildruta; statusraden säger vad som behövs
+      const b = blurEst(v, v.videoWidth, v.videoHeight); S.qBlur = S.qBlur == null ? b.sigma : S.qBlur * .5 + b.sigma * .5;
+      const eng = `${v.videoWidth}x${v.videoHeight} ${typeof ZXingWASM !== "undefined" && !S.zwOff ? "ZXC" : "ZX"}`;
+      $("stat").textContent = b.range < 25 ? `QR: för lite kontrast – mer ljus eller vinkla bort blänk · ${eng}` : S.qBlur > 1.6 ? `QR: suddigt (${S.qBlur.toFixed(1)}) – håll telefonen ca 20 cm bort eller byt kamera · ${eng}` : `QR: skarpt (${S.qBlur.toFixed(1)}) – lägg koden mitt i rutan · ${eng}`;
+    } catch { }
     try {
       const val = await decodeQR(v, v.videoWidth, v.videoHeight);
       if (val) { const t = Date.now(); if (val !== S.last || t - S.lastT > 4000) { S.last = val; S.lastT = t; await save(val, "QR"); S.lastT = Date.now(); } else S.lastT = t; }
@@ -789,7 +826,7 @@ $("readqr").onclick = async () => {
   try {
     const val = await decodeQR(v, v.videoWidth, v.videoHeight, true); $("toast").classList.add("hide");
     if (val) { S.last = val; S.lastT = Date.now(); await save(val, "QR"); S.lastT = Date.now(); }
-    else toast("Hittade ingen QR-kod – gå närmare, zooma eller använd Ta foto", 4000);
+    else toast(S.qBlur > 1.6 ? "Ingen QR-kod hittad – bilden är suddig. Håll telefonen ca 20 cm från låset, eller välj ultravidvinkelkameran och gå nära" : "Ingen QR-kod hittad – lägg koden mitt i rutan, vinkla bort blänk eller tryck Ta foto", 5000);
   } finally { S.busy = false; }
 };
 const OPS = { ge: "är lika med eller större än", gt: "är större än", eq: "är lika med", le: "är lika med eller mindre än", lt: "är mindre än" };
