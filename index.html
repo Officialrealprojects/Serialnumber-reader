@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Inläsning - Smarta Lås (V3)</title>
+<title>Inläsning - Smarta Lås (V4)</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%231f5fbf'/%3E%3Cg fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' transform='translate%284 4%29 scale%28.67%29'%3E%3Crect x='3' y='11' width='18' height='11' rx='2'/%3E%3Cpath d='M7 11V7a5 5 0 0 1 10 0v4'/%3E%3C/g%3E%3C/svg%3E">
 <meta name="theme-color" content="#1f2937">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -124,7 +124,24 @@ h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
     <div class="row" id="zrow"><span class="fit mut" id="zlab">Zoom</span><input type="range" id="zoom" min="1" max="1" step="0.1" aria-label="Zoom"></div>
     <div class="row hide" id="camrow"><span class="fit mut">Kamera</span><select id="camsel" aria-label="Kamera"></select></div>
     <div id="hint" class="mut"></div>
-    <div class="card" style="margin-top:12px">
+    <div class="card" style="margin-top:12px" id="iscard">
+      <h4><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 20h.01"/></svg>Skanna QR med iPhones egen läsare</h4>
+      <div class="mut">iPhone-kamerans QR-läsare går inte att bygga in i en webbsida, men en genväg i appen Genvägar kan använda den och skicka numren hit. Du skannar lås efter lås med Apples läsare och trycker Klar – då öppnas den här sidan och numren sparas i öppet projekt (avvikelser, dubbletter och varningslistan frågar som vanligt).</div>
+      <details style="margin-top:8px"><summary><b>Så skapar du genvägen (en gång per iPhone)</b></summary>
+        <ol class="mut" style="padding-left:20px;margin:8px 0">
+          <li>Öppna appen <b>Genvägar</b>, tryck <b>+</b> och döp genvägen till t.ex. <i>Skanna lås</i>.</li>
+          <li>Lägg till <b>Upprepa</b> och ställ in <b>200</b> gånger.</li>
+          <li>Inuti Upprepa: lägg till <b>Skanna QR-/streckkod</b> (sök på ”QR”).</li>
+          <li>Därefter <b>Lägg till i variabel</b>: QR-/streckkod → variabeln <b>Koder</b>.</li>
+          <li>Därefter <b>Välj från meny</b> med valen <b>Nästa lås</b> och <b>Klar</b>. Låt Nästa lås vara tomt.</li>
+          <li>Under <b>Klar</b>: <b>Kombinera text</b> (Koder, avgränsare: Anpassad <b>,</b>) → <b>URL</b> med adressen nedan följt av <b>Kombinerad text</b> → <b>Öppna URL:er</b> → <b>Stoppa den här genvägen</b>.</li>
+          <li>Lägg genvägen på hemskärmen (Dela → Lägg till på hemskärmen).</li>
+        </ol>
+        <div class="row"><input type="text" id="isurl" readonly aria-label="Adress till genvägen"><button class="sec fit" id="iscopy">Kopiera</button></div>
+        <div class="mut">Prova: tryck <a href="#" id="istest">testa med 70053229</a> så ska numret komma in som om genvägen skickat det.</div>
+      </details>
+    </div>
+    <div class="card">
       <b>Skriv in / korrigera</b>
       <div class="row"><input type="text" id="manual" inputmode="numeric" placeholder="Serienummer"><button class="fit" id="addm">Spara</button></div>
     </div>
@@ -195,12 +212,32 @@ function toast(t, ms = 2200) { const e = $("toast"); e.textContent = t; e.classL
 const fmt = d => new Date(d).toLocaleString("sv-SE");
 const genCode = () => { const a = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; return Array.from({ length: 6 }, () => a[Math.floor(Math.random() * a.length)]).join(""); };
 
+// ---------- Koder från iPhone-genvägen (Apples QR-läsare): sidan öppnas med ?qr=nr1,nr2,… ----------
+const IS = { key: "pendingQr" };
+(function takeQr() {
+  const u = new URL(location.href), q = u.searchParams.get("qr"); if (q == null) return;
+  const add = q.split(/[\s,;]+/).map(s => s.trim()).filter(Boolean);
+  let old = []; try { old = JSON.parse(localStorage.getItem(IS.key) || "[]"); } catch { }
+  try { localStorage.setItem(IS.key, JSON.stringify(old.concat(add))); } catch { }
+  u.searchParams.delete("qr"); history.replaceState(null, "", u.pathname + (u.search || "") + u.hash); // så att en omladdning inte sparar igen
+})();
+async function processQr() {
+  let list = []; try { list = JSON.parse(localStorage.getItem(IS.key) || "[]"); } catch { }
+  if (!list.length || !S.code || IS.run) return; IS.run = true;
+  try {
+    localStorage.removeItem(IS.key);
+    if (!(await dialog({ title: `${list.length} kod${list.length > 1 ? "er" : ""} från iPhone-skannern`, text: `Spara i projektet ${S.pname}? ${list.join(", ")}. Nummer som avviker, redan finns eller står på varningslistan frågar separat.`, yes: "Spara" }))) return toast("Inget sparat", 2000);
+    const before = S.scans.length; S.busy = true;
+    try { for (const v of list) await save(v, "QR (iPhone)", { direct: true }); } finally { S.busy = false; }
+    await load(); toast(`Klart: ${S.scans.length - before} av ${list.length} sparade`, 4000);
+  } finally { IS.run = false; }
+}
 // ---------- Projekt ----------
 function show() {
   $("home").classList.toggle("hide", !!S.code);
   $("proj").classList.toggle("hide", !S.code);
-  if (S.code) { $("ptitle").textContent = S.pname; $("pcode").textContent = S.code; S.limit = localStorage.getItem("limit_" + S.code) || ""; $("limit").value = S.limit; S.lop = localStorage.getItem("limitop_" + S.code) || "ge"; $("lop").value = S.lop; loadWatch(); load(); subscribe(); startCam(); }
-  else { stopCam(); $("name").value = S.me; }
+  if (S.code) { $("ptitle").textContent = S.pname; $("pcode").textContent = S.code; S.limit = localStorage.getItem("limit_" + S.code) || ""; $("limit").value = S.limit; S.lop = localStorage.getItem("limitop_" + S.code) || "ge"; $("lop").value = S.lop; loadWatch(); load().then(processQr); subscribe(); startCam(); }
+  else { stopCam(); $("name").value = S.me; let n = 0; try { n = JSON.parse(localStorage.getItem(IS.key) || "[]").length; } catch { } if (n) toast(`${n} kod(er) från iPhone-skannern väntar – öppna ett projekt så sparas de`, 6000); }
 }
 function needName() { S.me = $("name").value.trim(); if (!S.me) { toast("Skriv ditt namn först"); return false; } localStorage.setItem("me", S.me); return true; }
 function open_(code, name) { S.code = code; S.pname = name; localStorage.setItem("code", code); localStorage.setItem("pname", name); show(); }
@@ -215,6 +252,9 @@ $("join").onclick = async () => {
   if (!data) return toast("Hittar ingen sådan kod"); open_(data.code, data.name);
 };
 $("leave").onclick = () => { localStorage.removeItem("code"); localStorage.removeItem("pname"); S.code = null; if (S.ch) db.removeChannel(S.ch); show(); };
+$("isurl").value = location.origin + location.pathname + "?qr=";
+$("iscopy").onclick = () => { navigator.clipboard?.writeText($("isurl").value).then(() => toast("Adressen kopierad"), () => { $("isurl").select(); toast("Markera och kopiera adressen"); }); };
+$("istest").onclick = e => { e.preventDefault(); try { localStorage.setItem(IS.key, JSON.stringify(["70053229"])); } catch { } processQr(); };
 $("copy").onclick = e => { e.preventDefault(); navigator.clipboard?.writeText(S.code); toast("Koden kopierad"); };
 
 // ---------- Data ----------
@@ -340,7 +380,7 @@ function initZoom() { // vid kamerastart och lägesbyte. Sifferläget startar in
 }
 function mode(m) {
   S.mode = m; $("mQR").className = m === "qr" ? "" : "sec"; $("mOCR").className = m === "ocr" ? "" : "sec"; $("read").classList.toggle("hide", m !== "ocr"); $("readqr").classList.toggle("hide", m !== "qr"); $("stat").textContent = m === "qr" ? "QR: söker automatiskt" : "OCR: läser automatiskt"; $("box").classList.toggle("line", m === "ocr"); initZoom();
-  $("hint").textContent = m === "qr" ? "Håll QR-koden inom rutan och vänta tills bilden är skarp. Små graverade koder: håll telefonen 15–25 cm bort och zooma in med reglaget i stället för att gå nära, och vinkla låset så att blänket försvinner. Det läses automatiskt, eller tryck Läs QR." : "Håll telefonen 15–25 cm från låset och zooma in med reglaget i stället för att gå nära – då blir små siffror skarpa. Sikta så att sifferraden ligger i den avlånga rutan och håll stilla. Numret läses automatiskt och du bekräftar en gång. Vinkla lite för att slippa blänk. Går det inte: tryck på bilden för att fokusera om, välj en annan kamera i listan Kamera, tryck Läs siffror eller Ta foto.";
+  $("hint").textContent = m === "qr" ? "Håll QR-koden inom rutan och vänta tills bilden är skarp. Små graverade koder: håll telefonen 15–25 cm bort och zooma in med reglaget i stället för att gå nära, och vinkla låset så att blänket försvinner. Det läses automatiskt, eller tryck Läs QR. Fungerar det ändå inte: tryck Ta foto (iPhone-kameran fokuserar bäst på nära håll) eller använd iPhone-genvägen nedan." : "Håll telefonen 15–25 cm från låset och zooma in med reglaget i stället för att gå nära – då blir små siffror skarpa. Sikta så att sifferraden ligger i den avlånga rutan och håll stilla. Numret läses automatiskt och du bekräftar en gång. Vinkla lite för att slippa blänk. Går det inte: tryck på bilden för att fokusera om, välj en annan kamera i listan Kamera, tryck Läs siffror eller Ta foto.";
   if (m === "ocr") { ppInit().catch(() => { }); live(); } // AI-läsmotorn laddas i förväg
 }
 $("mQR").onclick = () => mode("qr"); $("mOCR").onclick = () => mode("ocr"); mode("qr");
@@ -431,6 +471,13 @@ function qrSharp(src, w, h, s, T, amt, rad) { // mitten av det som syns, uppskal
   const m = boxBlur(g.slice(), cw, cw, rad);
   for (let i = 0; i < g.length; i++) { const v = g[i] + amt * (g[i] - m[i]); p[4 * i] = p[4 * i + 1] = p[4 * i + 2] = v < 0 ? 0 : v > 255 ? 255 : v; }
   ag.putImageData(d, 0, 0); return a;
+}
+async function qrPhoto(cv) { // foto från iPhone-kameran: hela bilden, sedan överlappande delar i full upplösning (små koder), sedan de äldre avkodarna
+  const W = cv.width, H = cv.height; let q = await zw(cv); if (q) return q;
+  for (const n of [2, 3]) { const tw = W / n * 1.5, th = H / n * 1.5;
+    for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) { const x = Math.min(W - tw, Math.max(0, (i + .5) * W / n - tw / 2)), y = Math.min(H - th, Math.max(0, (j + .5) * H / n - th / 2));
+      const c = cropTo(cv, W, H, x / W, y / H, tw / W, th / H, Math.round(Math.min(tw, 2000))); q = await zw(c); if (q) return q; } }
+  return decodeQR(cv, W, H, true);
 }
 async function decodeQR(src, w, h, heavy) { // heavy = grundlig sökning (knapp/foto)
   // först den nya avkodaren i full upplösning (små koder behöver alla pixlar): det som syns i bilden, sedan hela bildrutan
@@ -726,10 +773,14 @@ $("read").onclick = async () => {
 $("photo").onclick = () => $("file").click();
 $("file").onchange = async e => {
   const f = e.target.files[0]; e.target.value = ""; if (!f) return;
-  const img = await createImageBitmap(f); const sc = Math.min(1, 3000 / Math.max(img.width, img.height));
-  const w = Math.round(img.width * sc), h = Math.round(img.height * sc);
-  if (S.mode === "qr") { const val = await decodeQR(img, w, h, true); val ? save(val, "QR (foto)") : toast("Hittade ingen QR-kod i fotot", 3000); }
-  else { const cv = document.createElement("canvas"); cv.width = w; cv.height = h; cv.getContext("2d").drawImage(img, 0, 0, w, h); S.busy = true; try { await ocr([cv]); } finally { S.busy = false; } }
+  const img = await createImageBitmap(f), qr = S.mode === "qr", sc = Math.min(1, (qr ? 4100 : 3000) / Math.max(img.width, img.height));
+  const w = Math.round(img.width * sc), h = Math.round(img.height * sc), cv = document.createElement("canvas"); cv.width = w; cv.height = h; // fotot ritas i rätt storlek först (annars beskärs fel)
+  const g = cv.getContext("2d", { willReadFrequently: true }); g.imageSmoothingQuality = "high"; g.drawImage(img, 0, 0, w, h); img.close?.();
+  S.busy = true;
+  try {
+    if (qr) { toast("Söker QR-kod i fotot…", 20000); const val = await qrPhoto(cv); $("toast").classList.add("hide"); val ? await save(val, "QR (foto)") : toast("Hittade ingen QR-kod i fotot – fota rakt framifrån utan blänk, eller använd iPhone-genvägen", 5000); }
+    else await ocr([cv]);
+  } finally { S.busy = false; }
 };
 $("addm").onclick = () => { const v = $("manual").value.trim(); if (v) { save(v, "Manuell", { direct: true }); $("manual").value = ""; } };
 
