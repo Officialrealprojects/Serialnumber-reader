@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Inläsning - Smarta Lås (V4)</title>
+<title>Inläsning - Smarta Lås (V5)</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%231f5fbf'/%3E%3Cg fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' transform='translate%284 4%29 scale%28.67%29'%3E%3Crect x='3' y='11' width='18' height='11' rx='2'/%3E%3Cpath d='M7 11V7a5 5 0 0 1 10 0v4'/%3E%3C/g%3E%3C/svg%3E">
 <meta name="theme-color" content="#1f2937">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -526,20 +526,33 @@ async function decodeQR(src, w, h, heavy) { // heavy = grundlig sökning (knapp/
     if (heavy) for (const k of ["gray", "ad", "inv"]) { r = await tryAll(prep(c, k)); if (r) return r; }
   } return null;
 }
+// Direktläget gör allt som knappen Läs QR gör, men fördelat: varje bildruta får den snabba sökningen plus ett steg ur den grundliga
+const HEAVY = (() => {
+  const st = [(src, w, h) => { const s = Math.min(w, h) / (src === $("vid") ? Z.sw : 1); return zw(cropTo(src, w, h, (w - s) / 2 / w, (h - s) / 2 / h, s / w, s / h, Math.min(2400, Math.round(s)))); }, // det synliga i full upplösning (4K)
+    (src, w, h) => zw(cropTo(src, w, h, 0, 0, 1, 1, Math.min(2400, w)))];
+  for (const [x, y, fw, fh] of [[.3, .3, .4, .4], [.2, .2, .6, .6], [.1, .1, .8, .8], [0, 0, 1, 1]]) for (const k of [null, "gray", "ad", "inv"])
+    st.push((src, w, h) => { const c = cropTo(src, w, h, x, y, fw, fh, Math.min(1400, Math.round(w * fw))); return tryAll(k ? prep(c, k) : c); });
+  return st;
+})();
+async function liveQR(v, w, h) {
+  const q = await decodeQR(v, w, h); if (q) return q;
+  S.hs = ((S.hs || 0) + 1) % HEAVY.length; return HEAVY[S.hs](v, w, h);
+}
 async function loop() {
   const v = $("vid");
   while (S.stream) {
-    await new Promise(r => setTimeout(r, 160));
+    await new Promise(r => setTimeout(r, 80));
     if (S.mode !== "qr" || S.busy || $("vScan").classList.contains("hide") || !v.videoWidth) continue;
     S.busy = true; S.fr = (S.fr || 0) + 1;
-    if (S.fr % 4 === 1) try { // skärpan mäts var 4:e bildruta; statusraden säger vad som behövs
+    if (S.fr % 4 === 1 && Date.now() - (S.qSeen || 0) > 1200) try { // skärpan mäts var 4:e bildruta; statusraden säger vad som behövs
       const b = blurEst(v, v.videoWidth, v.videoHeight); S.qBlur = S.qBlur == null ? b.sigma : S.qBlur * .5 + b.sigma * .5;
       const eng = `${v.videoWidth}x${v.videoHeight} ${typeof ZXingWASM !== "undefined" && !S.zwOff ? "ZXC" : "ZX"}`;
       $("stat").textContent = b.range < 25 ? `QR: för lite kontrast – mer ljus eller vinkla bort blänk · ${eng}` : S.qBlur > 1.6 ? `QR: suddigt (${S.qBlur.toFixed(1)}) – håll telefonen ca 20 cm bort eller byt kamera · ${eng}` : `QR: skarpt (${S.qBlur.toFixed(1)}) – lägg koden mitt i rutan · ${eng}`;
     } catch { }
     try {
-      const val = await decodeQR(v, v.videoWidth, v.videoHeight);
-      if (val) { const t = Date.now(); if (val !== S.last || t - S.lastT > 4000) { S.last = val; S.lastT = t; await save(val, "QR"); S.lastT = Date.now(); } else S.lastT = t; }
+      const val = await liveQR(v, v.videoWidth, v.videoHeight), t = Date.now();
+      // samma kod läses inte om medan den syns kvar i bild; den läses igen när den varit borta 1,5 s (t.ex. nästa lås med samma nummer, eller om du tryckte Avbryt)
+      if (val) { if (val !== S.last || t - S.lastT > 1500) { S.last = val; S.lastT = t; await save(val, "QR"); S.lastT = Date.now(); } else { S.lastT = t; S.qSeen = t; $("stat").textContent = `QR: ${val} är hanterat – ta bort koden ur bild eller sikta på nästa lås`; } }
     } finally { S.busy = false; }
   }
 }
