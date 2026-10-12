@@ -3,14 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Inläsning - Smarta Lås</title>
+<title>Inläsning – Smarta Lås</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%231f5fbf'/%3E%3Cg fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' transform='translate%284 4%29 scale%28.67%29'%3E%3Crect x='3' y='11' width='18' height='11' rx='2'/%3E%3Cpath d='M7 11V7a5 5 0 0 1 10 0v4'/%3E%3C/g%3E%3C/svg%3E">
 <meta name="theme-color" content="#1f2937">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/zxing-wasm@2.2.4/dist/iife/reader/index.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.wasm.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
 :root{--bg:#f4f5f7;--card:#fff;--tx:#1b1f24;--mut:#667085;--ac:#1f5fbf;--bad:#c62828;--ok:#2e7d32;--warn:#a85f00;--bd:#d9dde3}
@@ -40,8 +42,9 @@ input[type=checkbox]{width:18px;height:18px;accent-color:var(--ac)}
 .tabs button:not(.sec){color:var(--tx);border-bottom-color:var(--ac);font-weight:600}
 .hide{display:none!important}
 #vwrap{position:relative;background:#000;border-radius:8px;overflow:hidden;aspect-ratio:1/1}
-video{width:100%;height:100%;object-fit:cover}
+video{width:100%;height:100%;object-fit:cover;transform-origin:50% 50%}
 #box{position:absolute;inset:22%;border:2px solid rgba(255,255,255,.9);border-radius:4px;box-shadow:0 0 0 999px rgba(0,0,0,.42);pointer-events:none}
+#box.line{inset:39% 7%}
 #stat{position:absolute;left:8px;top:8px;background:rgba(0,0,0,.6);color:#fff;padding:3px 8px;border-radius:3px;font-size:12px}
 table{width:100%;border-collapse:collapse}
 th{font-size:12px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
@@ -118,7 +121,8 @@ h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
       <button id="read" class="hide"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>Läs siffror</button>
     </div>
     <div class="row" id="cands"></div>
-    <div class="row" id="zrow"><span class="fit mut">Zoom</span><input type="range" id="zoom" min="1" max="1" step="0.1"></div>
+    <div class="row" id="zrow"><span class="fit mut" id="zlab">Zoom</span><input type="range" id="zoom" min="1" max="1" step="0.1" aria-label="Zoom"></div>
+    <div class="row hide" id="camrow"><span class="fit mut">Kamera</span><select id="camsel" aria-label="Kamera"></select></div>
     <div id="hint" class="mut"></div>
     <div class="card" style="margin-top:12px">
       <b>Skriv in / korrigera</b>
@@ -177,8 +181,8 @@ h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
 
 <script>
 // ====== FYLL I DINA UPPGIFTER FRÅN SUPABASE (Project Settings > API) ======
-const SUPABASE_URL = "https://hnjlebibxnkgxubtthff.supabase.co"; 
-const SUPABASE_KEY = "sb_publishable_XRFCx3Gk8xNV_gLJNIUCmA_433YnsFM";
+const SUPABASE_URL = "DIN_SUPABASE_URL";
+const SUPABASE_KEY = "DIN_SUPABASE_ANON_KEY";
 // Gratis nyckel från ocr.space/ocrapi (kommer via e-post). "helloworld" är en delad testnyckel med låg gräns.
 const OCR_SPACE_KEY = "helloworld";
 // ==========================================================================
@@ -265,7 +269,7 @@ async function save(serial, method, o = {}) {
   for (let first = true; ; first = false) {
     const bad = over(v), wl = watched(v), dup = S.scans.some(r => r.serial === v), odd = L && /^\d+$/.test(v) && v.length !== L;
     if (first ? (o.direct && !bad && !wl && !dup && !odd) : (!bad && !wl)) break;
-    const notes = [dup && "Obs: serienumret finns redan i listan.", odd && `Obs: övriga lås har ${L} siffror, det här har ${v.length}. Saknas någon siffra?`].filter(Boolean).join(" ");
+    const notes = [first && o.unsure && "Osäker läsning – jämför noga med låset.", dup && "Obs: serienumret finns redan i listan.", odd && `Obs: övriga lås har ${L} siffror, det här har ${v.length}. Saknas någon siffra?`].filter(Boolean).join(" ");
     const warn = [wl && "Serienumret finns på din varningslista.", bad && `Serienumrets början ${OPS[S.lop || "ge"]} ${S.limit}.`].filter(Boolean).join(" ");
     const r = await dialog(warn
       ? { err: 1, title: wl ? "Varning: finns på varningslistan" : "Varning: träffar din gräns", text: `${warn} ${wl ? "Vill du verkligen lägga till serienumret i listan?" : "Vill du verkligen spara det?"} ${notes}`.trim(), yes: wl ? "Lägg till ändå" : "Spara ändå", value: v, alts: first && o.alts }
@@ -318,27 +322,65 @@ $("csv").onclick = () => {
 // ---------- Flikar & lägen ----------
 function tab(n) { for (const [k, v] of [["scan", "vScan"], ["list", "vList"], ["pal", "vPal"]]) { $(v).classList.toggle("hide", n !== k); $("t" + k[0].toUpperCase() + k.slice(1)).className = n === k ? "" : "sec"; } if (n === "pal") renderPall(); }
 $("tScan").onclick = () => tab("scan"); $("tList").onclick = () => tab("list"); $("tPal").onclick = () => tab("pal");
+// ---------- Zoom ----------
+const Z = { hw: null, v: { qr: null, ocr: null }, sw: 1 }; // hw = kamerans egen zoom (min/max/step); saknas den används bildzoom 1–4
+const zr = () => Z.hw || { min: 1, max: 4, step: .1 };
+function setZoom(v, remember) {
+  const r = zr(); v = Math.min(r.max, Math.max(r.min, +v || r.min)); Z.v[S.mode] = v; $("zoom").value = v;
+  if (Z.hw) S.track?.applyConstraints({ advanced: [{ zoom: v }] }).catch(() => { });
+  Z.sw = Z.hw ? 1 : v; $("vid").style.transform = Z.sw > 1 ? `scale(${Z.sw})` : "";
+  if (remember) try { localStorage.setItem("zoom_" + S.mode, (Z.hw ? "h" : "s") + v); } catch { }
+}
+function camZoomBy(f) { const r = zr(), v = Z.v[S.mode] ?? r.min; setZoom(r.min >= 1 ? v * f : v + (r.max - r.min) * .15 * (f > 1 ? 1 : -1)); }
+function initZoom() { // vid kamerastart och lägesbyte. Sifferläget startar inzoomat (senast fungerande nivå, annars 2x) så att man kan hålla telefonen på skarpt avstånd
+  const r = zr(), z = $("zoom"); z.min = r.min; z.max = r.max; z.step = r.step || .1; $("zrow").classList.remove("hide");
+  let v = Z.v[S.mode];
+  if (v == null) { const s = localStorage.getItem("zoom_" + S.mode); v = s && s[0] === (Z.hw ? "h" : "s") ? +s.slice(1) : S.mode !== "ocr" ? r.min : r.min >= 1 ? r.min * 2 : r.min + (r.max - r.min) * .25; }
+  setZoom(v);
+}
 function mode(m) {
-  S.mode = m; $("mQR").className = m === "qr" ? "" : "sec"; $("mOCR").className = m === "ocr" ? "" : "sec"; $("read").classList.toggle("hide", m !== "ocr"); $("readqr").classList.toggle("hide", m !== "qr"); $("stat").textContent = m === "qr" ? "QR: söker automatiskt" : "OCR: tryck Läs siffror";
-  $("hint").textContent = m === "qr" ? "Håll QR-koden inom rutan på 10–20 cm avstånd och vänta tills bilden är skarp. Zooma vid behov. Det läses automatiskt, eller tryck Läs QR." : "Rikta rutan mot siffrorna, vinkla lite för att slippa blänk och tryck Läs siffror. Tre bilder tas och jämförs, sedan bekräftar du en gång.";
+  S.mode = m; $("mQR").className = m === "qr" ? "" : "sec"; $("mOCR").className = m === "ocr" ? "" : "sec"; $("read").classList.toggle("hide", m !== "ocr"); $("readqr").classList.toggle("hide", m !== "qr"); $("stat").textContent = m === "qr" ? "QR: söker automatiskt" : "OCR: läser automatiskt"; $("box").classList.toggle("line", m === "ocr"); initZoom();
+  $("hint").textContent = m === "qr" ? "Håll QR-koden inom rutan och vänta tills bilden är skarp. Små graverade koder: håll telefonen 15–25 cm bort och zooma in med reglaget i stället för att gå nära, och vinkla låset så att blänket försvinner. Det läses automatiskt, eller tryck Läs QR." : "Håll telefonen 15–25 cm från låset och zooma in med reglaget i stället för att gå nära – då blir små siffror skarpa. Sikta så att sifferraden ligger i den avlånga rutan och håll stilla. Numret läses automatiskt och du bekräftar en gång. Vinkla lite för att slippa blänk. Går det inte: tryck på bilden för att fokusera om, välj en annan kamera i listan Kamera, tryck Läs siffror eller Ta foto.";
+  if (m === "ocr") { ppInit().catch(() => { }); live(); } // AI-läsmotorn laddas i förväg
 }
 $("mQR").onclick = () => mode("qr"); $("mOCR").onclick = () => mode("ocr"); mode("qr");
 
 // ---------- Kamera ----------
-async function startCam() {
-  if (S.stream) return;
+async function allCams() { try { return (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === "videoinput" && d.deviceId); } catch { return []; } }
+async function startCam(noRetry) { // kameran väljs aldrig automatiskt: telefonens standardkamera tills du väljer en annan i listan Kamera, sedan alltid den du valt
+  if (S.stream || S.starting) return; S.starting = true;
   try {
-    S.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 3840 }, height: { ideal: 2160 } }, audio: false });
-  } catch (e) { return toast("Kameran kunde inte startas: " + e.message, 4000); }
-  $("vid").srcObject = S.stream; await $("vid").play().catch(() => { });
-  S.track = S.stream.getVideoTracks()[0]; const cap = S.track.getCapabilities ? S.track.getCapabilities() : {};
-  $("torch").classList.toggle("hide", !cap.torch);
-  if (cap.zoom) { const z = $("zoom"); z.min = cap.zoom.min; z.max = cap.zoom.max; z.step = cap.zoom.step || 0.1; z.value = cap.zoom.min; $("zrow").classList.remove("hide"); } else $("zrow").classList.add("hide");
-  if (cap.focusMode && cap.focusMode.includes("continuous")) S.track.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => { });
-  loop();
+    const size = { width: { ideal: 3840 }, height: { ideal: 2160 } }, saved = localStorage.getItem("cam"), label = localStorage.getItem("camLabel"); let st = null;
+    if (saved) try { st = await navigator.mediaDevices.getUserMedia({ video: { ...size, deviceId: { exact: saved } }, audio: false }); } catch { }
+    try { if (!st) st = await navigator.mediaDevices.getUserMedia({ video: { ...size, facingMode: { ideal: "environment" } }, audio: false }); }
+    catch (e) { return toast("Kameran kunde inte startas: " + e.message, 4000); }
+    S.stream = st; $("vid").srcObject = st; await $("vid").play().catch(() => { });
+    S.track = st.getVideoTracks()[0]; const cap = S.cap = S.track.getCapabilities ? S.track.getCapabilities() : {};
+    const cams = await allCams(), cur = (S.track.getSettings ? S.track.getSettings() : {}).deviceId;
+    if (saved && cur !== saved && label && !noRetry) { // den valda kameran har fått ett nytt id (händer på iPhone): leta upp den på namnet
+      const m = cams.find(d => d.label === label);
+      if (m && m.deviceId !== cur) { try { localStorage.setItem("cam", m.deviceId); } catch { } stopCam(); S.starting = false; return startCam(true); }
+    }
+    const sel = $("camsel"); sel.innerHTML = "";
+    cams.forEach((d, i) => { const o = document.createElement("option"); o.value = d.deviceId; o.dataset.label = d.label || ""; o.textContent = (d.label || "Kamera " + (i + 1)) + (/triple|trippel|dual|dubbel/i.test(d.label) ? " (byter lins själv)" : ""); sel.appendChild(o); });
+    sel.value = cur || ""; $("camrow").classList.toggle("hide", cams.length < 2);
+    $("torch").classList.toggle("hide", !cap.torch);
+    Z.hw = cap.zoom && cap.zoom.max > cap.zoom.min ? { min: cap.zoom.min, max: cap.zoom.max, step: cap.zoom.step || .1 } : null; initZoom();
+    if (cap.focusMode && cap.focusMode.includes("continuous")) S.track.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => { });
+    loop(); live();
+  } finally { S.starting = false; }
 }
 function stopCam() { S.stream?.getTracks().forEach(t => t.stop()); S.stream = null; S.track = null; }
-$("zoom").oninput = e => S.track?.applyConstraints({ advanced: [{ zoom: +e.target.value }] }).catch(() => { });
+$("zoom").oninput = e => { LIVE.manual = Date.now(); setZoom(+e.target.value, true); };
+$("camsel").onchange = async e => { // du väljer själv vilken kamera/lins som används; valet sparas och ändras aldrig automatiskt
+  const o = e.target.selectedOptions[0]; if (!o) return; e.target.blur();
+  try { localStorage.setItem("cam", o.value); localStorage.setItem("camLabel", o.dataset.label || ""); } catch { }
+  stopCam(); Z.v = { qr: null, ocr: null }; LIVE.cand = null; await startCam(); toast("Kamera: " + (o.dataset.label || o.textContent), 2500);
+};
+$("vwrap").onclick = () => { // tryck på bilden: fokusera om (där telefonen stöder det)
+  const fm = (S.cap || {}).focusMode || []; if (!S.track || !fm.includes("single-shot")) return;
+  S.track.applyConstraints({ advanced: [{ focusMode: "single-shot" }] }).then(() => { toast("Fokuserar…", 1200); if (fm.includes("continuous")) setTimeout(() => S.track?.applyConstraints({ advanced: [{ focusMode: "continuous" }] }).catch(() => { }), 1800); }).catch(() => { });
+};
 $("torch").onclick = async () => { S.torchOn = !S.torchOn; try { await S.track.applyConstraints({ advanced: [{ torch: S.torchOn }] }); $("torch").className = S.torchOn ? "on" : "sec"; } catch { toast("Ficklampa stöds inte"); } };
 document.addEventListener("visibilitychange", () => { if (document.hidden) stopCam(); else if (S.code) startCam(); });
 
@@ -352,7 +394,18 @@ function zx(cv) {
     return rd.decode(new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(new ZXing.HTMLCanvasElementLuminanceSource(cv)))).getText();
   } catch { return null; }
 }
+// ZXing-C++ (zxing-wasm): klarar små, graverade och inverterade koder (ljusa på mörk metall) som de andra avkodarna missar
+if (typeof ZXingWASM !== "undefined") try { ZXingWASM.prepareZXingModule({ overrides: { locateFile: (f, pre) => f.endsWith(".wasm") ? "https://cdn.jsdelivr.net/npm/zxing-wasm@2.2.4/dist/reader/" + f : pre + f } }); } catch { }
+async function zw(cv) {
+  if (typeof ZXingWASM === "undefined" || S.zwOff) return null;
+  try {
+    const d = cv.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, cv.width, cv.height);
+    const r = await ZXingWASM.readBarcodes(d, { formats: ["QRCode"], tryHarder: true, tryInvert: true, tryRotate: true, tryDownscale: true, maxNumberOfSymbols: 1 });
+    S.zwErr = 0; return r.length && r[0].text ? r[0].text : null;
+  } catch (e) { console.warn(e); if ((S.zwErr = (S.zwErr || 0) + 1) > 3) S.zwOff = true; return null; } // går avkodaren inte att ladda används de övriga
+}
 async function tryAll(cv) {
+  const w = await zw(cv); if (w) return w;
   if (detector) { try { const r = await detector.detect(cv); if (r.length) return r[0].rawValue; } catch { } }
   const z = zx(cv); if (z) return z;
   const d = cv.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, cv.width, cv.height);
@@ -362,7 +415,31 @@ function cropTo(src, sw, sh, fx, fy, fw, fh, tw) {
   const c = document.createElement("canvas"); c.width = tw; c.height = Math.round(tw * (fh * sh) / (fw * sw));
   c.getContext("2d", { willReadFrequently: true }).drawImage(src, fx * sw, fy * sh, fw * sw, fh * sh, 0, 0, c.width, c.height); return c;
 }
+function boxBlur(g, w, h, r) { // två varv glidande medelvärde åt varje håll ≈ gaussisk oskärpa (egen kod: canvas-filter saknas i Safari)
+  const t = new Float32Array(g.length), n = 2 * r + 1;
+  for (let pass = 0; pass < 2; pass++) {
+    for (let y = 0; y < h; y++) { const o = y * w; let s = 0; for (let x = -r; x <= r; x++) s += g[o + Math.min(w - 1, Math.max(0, x))]; for (let x = 0; x < w; x++) { t[o + x] = s / n; s += g[o + Math.min(w - 1, x + r + 1)] - g[o + Math.max(0, x - r)]; } }
+    for (let x = 0; x < w; x++) { let s = 0; for (let y = -r; y <= r; y++) s += t[Math.min(h - 1, Math.max(0, y)) * w + x]; for (let y = 0; y < h; y++) { g[y * w + x] = s / n; s += t[Math.min(h - 1, y + r + 1) * w + x] - t[Math.max(0, y - r) * w + x]; } }
+  }
+  return g;
+}
+function qrSharp(src, w, h, s, T, amt, rad) { // mitten av det som syns, uppskalad och skärpt (oskarp mask): räddar lätt suddiga små koder
+  const sw = s * .6, k = Math.min(3, T / sw), cw = Math.round(sw * k), a = document.createElement("canvas"); a.width = a.height = cw;
+  const ag = a.getContext("2d", { willReadFrequently: true }); ag.imageSmoothingQuality = "high"; ag.drawImage(src, (w - sw) / 2, (h - sw) / 2, sw, sw, 0, 0, cw, cw);
+  const d = ag.getImageData(0, 0, cw, cw), p = d.data, g = new Float32Array(cw * cw);
+  for (let i = 0; i < g.length; i++) g[i] = p[4 * i] * .3 + p[4 * i + 1] * .59 + p[4 * i + 2] * .11;
+  const m = boxBlur(g.slice(), cw, cw, rad);
+  for (let i = 0; i < g.length; i++) { const v = g[i] + amt * (g[i] - m[i]); p[4 * i] = p[4 * i + 1] = p[4 * i + 2] = v < 0 ? 0 : v > 255 ? 255 : v; }
+  ag.putImageData(d, 0, 0); return a;
+}
 async function decodeQR(src, w, h, heavy) { // heavy = grundlig sökning (knapp/foto)
+  // först den nya avkodaren i full upplösning (små koder behöver alla pixlar): det som syns i bilden, sedan hela bildrutan
+  const z = src === $("vid") ? Z.sw : 1, s = Math.min(w, h) / z;
+  let q = await zw(cropTo(src, w, h, (w - s) / 2 / w, (h - s) / 2 / h, s / w, s / h, Math.min(1600, Math.round(s)))); if (q) return q;
+  if (heavy || z === 1) { q = await zw(cropTo(src, w, h, 0, 0, 1, 1, Math.min(heavy ? 2400 : 1600, w))); if (q) return q; }
+  S.qn = (S.qn || 0) + 1; // skärpta varianter: en per bildruta i direktläget (varannan inställning), båda vid grundlig sökning
+  for (const [T, amt, rad] of heavy ? [[1000, 4, 3], [1400, 4, 7]] : [S.qn % 2 ? [1000, 4, 3] : [1400, 4, 7]]) { q = await zw(qrSharp(src, w, h, s, T, amt, rad)); if (q) return q; }
+  if (!heavy && S.qn % 2) return null; // de äldre avkodarna (reserv) körs varannan bildruta i direktläget så att sökningen håller farten uppe
   const crops = heavy ? [[.2, .2, .6, .6], [.1, .1, .8, .8], [0, 0, 1, 1], [.3, .3, .4, .4]] : [[.2, .2, .6, .6], [0, 0, 1, 1]];
   for (const [x, y, fw, fh] of crops) {
     const c = cropTo(src, w, h, x, y, fw, fh, heavy ? 1400 : 900); let r = await tryAll(c); if (r) return r;
@@ -375,15 +452,15 @@ async function loop() {
     await new Promise(r => setTimeout(r, 160));
     if (S.mode !== "qr" || S.busy || $("vScan").classList.contains("hide") || !v.videoWidth) continue;
     S.busy = true; S.fr = (S.fr || 0) + 1;
-    if (S.fr % 8 === 1) $("stat").textContent = `QR: söker · ${v.videoWidth}x${v.videoHeight} ${detector ? "BD " : ""}${typeof ZXing !== "undefined" ? "ZX " : ""}jsQR`;
+    if (S.fr % 8 === 1) $("stat").textContent = `QR: söker · ${v.videoWidth}x${v.videoHeight} ${typeof ZXingWASM !== "undefined" && !S.zwOff ? "ZXC " : ""}${detector ? "BD " : ""}${typeof ZXing !== "undefined" ? "ZX " : ""}jsQR`;
     try {
       const val = await decodeQR(v, v.videoWidth, v.videoHeight);
       if (val) { const t = Date.now(); if (val !== S.last || t - S.lastT > 4000) { S.last = val; S.lastT = t; await save(val, "QR"); S.lastT = Date.now(); } else S.lastT = t; }
     } finally { S.busy = false; }
   }
 }
-function prep(src, kind) {
-  const sc = Math.max(1, 1600 / src.width), w = Math.round(src.width * sc), h = Math.round(src.height * sc);
+function prep(src, kind, tw) { // tw = målbredd (annars minst 1600 px)
+  const sc = tw ? tw / src.width : Math.max(1, 1600 / src.width), w = Math.round(src.width * sc), h = Math.round(src.height * sc);
   const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
   const cx = cv.getContext("2d", { willReadFrequently: true }); cx.imageSmoothingQuality = "high"; cx.drawImage(src, 0, 0, w, h);
   const d = cx.getImageData(0, 0, w, h), p = d.data, g = new Float32Array(w * h);
@@ -405,12 +482,17 @@ function prep(src, kind) {
   for (let i = 0; i < out.length; i++) p[4 * i] = p[4 * i + 1] = p[4 * i + 2] = out[i];
   cx.putImageData(d, 0, 0); return cv;
 }
-async function ocrLocal(canvas) { // reserv: läser lokalt i webbläsaren
-  if (!S.w) S.w = await Tesseract.createWorker("eng");
-  const votes = {};
+function getW() { // en gemensam läsmotor (Tesseract); laddas en gång och delas av alla läsningar
+  if (!S.wp) { S.wp = Tesseract.createWorker("eng"); S.wp.catch(() => { S.wp = null; }); }
+  return S.wp;
+}
+function lock(fn) { const p = (S.wq || Promise.resolve()).then(fn); S.wq = p.catch(() => { }); return p; } // en läsning i taget i läsmotorn
+const TXT = { text: true, blocks: false, hocr: false, tsv: false };
+async function ocrLocal(canvas) { // grundlig lokal läsning av en hel bild (foto)
+  const w = await getW(), votes = {};
   for (const [k, psm] of [["gray", "6"], ["ad", "6"], ["inv", "6"], ["ad", "11"]]) {
-    await S.w.setParameters({ tessedit_char_whitelist: "0123456789", tessedit_pageseg_mode: psm });
-    const { data } = await S.w.recognize(prep(canvas, k));
+    const img = prep(canvas, k);
+    const { data } = await lock(async () => { await w.setParameters({ tessedit_char_whitelist: "0123456789", tessedit_pageseg_mode: psm }); return w.recognize(img, {}, TXT); });
     (data.text.match(/\d{5,}/g) || []).forEach(n => votes[n] = (votes[n] || 0) + 1);
   }
   return Object.entries(votes).sort((a, b) => b[1] - a[1] || b[0].length - a[0].length).map(e => e[0]);
@@ -423,7 +505,8 @@ async function ocrCloud(canvas) { // OCR.space (Engine 2)
   const fd = new FormData();
   fd.append("apikey", OCR_SPACE_KEY); fd.append("base64Image", url); fd.append("language", "eng");
   fd.append("OCREngine", "2"); fd.append("scale", "true"); fd.append("detectOrientation", "true");
-  const j = await (await fetch("https://api.ocr.space/parse/image", { method: "POST", body: fd })).json();
+  const ac = new AbortController(), tm = setTimeout(() => ac.abort(), 5000); let j; // molnet får inte hålla upp läsningen
+  try { j = await (await fetch("https://api.ocr.space/parse/image", { method: "POST", body: fd, signal: ac.signal })).json(); } finally { clearTimeout(tm); }
   if (j.IsErroredOnProcessing) throw new Error([].concat(j.ErrorMessage || "OCR-fel").join(" "));
   const txt = (j.ParsedResults || []).map(p => p.ParsedText).join("\n"), out = [];
   txt.split(/\s+/).forEach(t => {
@@ -439,34 +522,204 @@ function pad(cv) { // marginal runt bilden så att kantsiffror (t.ex. sista) int
   for (const [x, y] of [[0, 0], [cv.width - 1, 0], [0, cv.height - 1], [cv.width - 1, cv.height - 1]]) { const d = cx.getImageData(x, y, 1, 1).data; r += d[0]; gg += d[1]; bb += d[2]; }
   g.fillStyle = `rgb(${r >> 2},${gg >> 2},${bb >> 2})`; g.fillRect(0, 0, o.width, o.height); g.drawImage(cv, p, p); return o;
 }
-function grabBox(v) { // hela det synliga rutområdet plus marginal (synliga bilden är en mittenkvadrat)
-  const w = v.videoWidth, h = v.videoHeight, s = Math.min(w, h), ox = (w - s) / 2, oy = (h - s) / 2, m = .16, cw = s * (1 - 2 * m);
-  const cv = document.createElement("canvas"); cv.width = cv.height = Math.round(cw); cv.getContext("2d").drawImage(v, ox + s * m, oy + s * m, cw, cw, 0, 0, cv.width, cv.height); return cv;
+function grabStrip(v, max) { // sifferremsan: den avlånga rutan plus marginal (94 % x 30 % av den synliga kvadraten)
+  const w = v.videoWidth, h = v.videoHeight, s = Math.min(w, h) / Z.sw, ox = (w - s) / 2, oy = (h - s) / 2, sw = s * .94, sh = s * .30, k = Math.min(1, max / sw);
+  const cv = document.createElement("canvas"); cv.width = Math.round(sw * k); cv.height = Math.round(sh * k);
+  const cx = cv.getContext("2d"); cx.imageSmoothingQuality = "high"; cx.drawImage(v, ox + s * .03, oy + s * .35, sw, sh, 0, 0, cv.width, cv.height); return cv;
+}
+function fixDigits(t) { // bokstäver före numret (S/N, No, ID) tas bort. Bokstäver som liknar siffror rättas bara om hela ordet då blir ett nummer
+  t = String(t).replace(/^\D+/, "").replace(/[.,:;]+$/, ""); if (t.length < 5) return [];
+  const f = t.replace(/[Oo]/g, "0").replace(/[Il|]/g, "1").replace(/S/g, "5").replace(/B/g, "8");
+  return /^\d+$/.test(f) && (t.match(/\d/g) || []).length / t.length >= .6 ? [f] : t.match(/\d{5,}/g) || [];
+}
+const SCALES = [800, 1000, 600]; // varje läsning görs i en ny skala, så att två läsningar som är överens är oberoende av varandra
+async function readStrip(cv, tw) { // en snabb lokal läsning av remsan; numret närmast rutans mittlinje kommer först
+  const w = await getW(), img = prep(cv, "ad", tw);
+  const { data } = await lock(async () => { await w.setParameters({ tessedit_char_whitelist: "", tessedit_pageseg_mode: "6" }); return w.recognize(img, {}, { ...TXT, tsv: true }); });
+  const out = [];
+  String(data.tsv || "").split("\n").forEach(l => {
+    const a = l.split("\t"); if (a[0] !== "5") return; const d = Math.abs((+a[7] + +a[9] / 2) / img.height - .5);
+    if (d <= .22) fixDigits(a[11] || "").forEach(n => out.push({ n, d })); // rader ovanför/nedanför rutan räknas inte
+  });
+  return [...new Set(out.sort((p, q) => p.d - q.d).map(o => o.n))];
+}
+// ---------- AI-läsmotor (PP-OCR via ONNX Runtime): körs lokalt i telefonen, utan konto och utan gräns ----------
+// Klarar små, suddiga och svaga siffror betydligt bättre än Tesseract. Modellerna (ca 16 MB) laddas ner en gång och sparas i webbläsaren.
+const PPSRC = ["https://cdn.jsdelivr.net/npm/@gutenye/ocr-models@1.4.2/assets/", "https://unpkg.com/@gutenye/ocr-models@1.4.2/assets/"];
+const PP = { p: null, ok: false, err: null, pct: 0, t0: 0 };
+async function ppFile(name, onp) {
+  let cache = null; try { cache = await caches.open("ocr-models-1"); const hit = await cache.match("/__ocr/" + name); if (hit) return new Uint8Array(await hit.arrayBuffer()); } catch { }
+  let last;
+  for (const base of PPSRC) try {
+    const r = await fetch(base + name); if (!r.ok) throw new Error(name + ": " + r.status);
+    const rd = r.body.getReader(), parts = []; let got = 0;
+    for (; ;) { const { done, value } = await rd.read(); if (done) break; parts.push(value); got += value.length; onp && onp(got); }
+    const buf = new Uint8Array(got); let o = 0; for (const q of parts) { buf.set(q, o); o += q.length; }
+    try { if (cache) await cache.put("/__ocr/" + name, new Response(buf.slice(), { headers: { "content-type": "application/octet-stream" } })); } catch { }
+    return buf;
+  } catch (e) { last = e; }
+  throw last;
+}
+function ppInit() {
+  if (PP.ok || PP.p) return PP.p;
+  PP.t0 = Date.now(); PP.err = null; PP.pct = 0;
+  PP.p = (async () => {
+    if (typeof ort === "undefined") throw new Error("ONNX Runtime kunde inte laddas");
+    ort.env.wasm.numThreads = 1; ort.env.wasm.proxy = true; // körs i en bakgrundstråd så att kamerabilden inte hackar
+    const got = {}, onp = k => n => { got[k] = n; PP.pct = Math.min(99, Math.round(((got.d || 0) + (got.r || 0)) / 15.6e6 * 100)); };
+    const [d, r, k] = await Promise.all([ppFile("ch_PP-OCRv4_det_infer.onnx", onp("d")), ppFile("ch_PP-OCRv4_rec_infer.onnx", onp("r")), ppFile("ppocr_keys_v1.txt")]);
+    const o = { executionProviders: ["wasm"], graphOptimizationLevel: "all" };
+    PP.det = await ort.InferenceSession.create(d, o); PP.rec = await ort.InferenceSession.create(r, o);
+    PP.keys = [""].concat(new TextDecoder().decode(k).replace(/\r/g, "").replace(/\n$/, "").split("\n"), [" "]); PP.ok = true;
+  })();
+  PP.p.catch(e => { PP.err = e; PP.p = null; console.warn("AI-läsmotorn kunde inte laddas", e); });
+  return PP.p;
+}
+function ppTensor(cv, w, h, mean, std) { // bild -> tal i modellens format [1,3,h,w]
+  const c = document.createElement("canvas"); c.width = w; c.height = h; const x = c.getContext("2d", { willReadFrequently: true }); x.imageSmoothingQuality = "high"; x.drawImage(cv, 0, 0, w, h);
+  const p = x.getImageData(0, 0, w, h).data, n = w * h, f = new Float32Array(3 * n);
+  for (let i = 0; i < n; i++) { f[i] = (p[4 * i + 2] / 255 - mean[0]) / std[0]; f[n + i] = (p[4 * i + 1] / 255 - mean[1]) / std[1]; f[2 * n + i] = (p[4 * i] / 255 - mean[2]) / std[2]; }
+  return new ort.Tensor("float32", f, [1, 3, h, w]);
+}
+async function ppDet(cv, scale) { // hitta textrader: [{x,y,w,h}] i bildens koordinater
+  const w = Math.max(32, Math.round(cv.width * scale / 32) * 32), h = Math.max(32, Math.round(cv.height * scale / 32) * 32);
+  const out = await PP.det.run({ [PP.det.inputNames[0]]: ppTensor(cv, w, h, [.485, .456, .406], [.229, .224, .225]) }), m = out[PP.det.outputNames[0]].data;
+  const lab = new Uint8Array(w * h), st = new Int32Array(w * h), boxes = [];
+  for (let s = 0; s < w * h; s++) {
+    if (m[s] < .3 || lab[s]) continue; let top = 0, x0 = w, x1 = 0, y0 = h, y1 = 0, sum = 0, n = 0; st[top++] = s; lab[s] = 1;
+    while (top) {
+      const q = st[--top], x = q % w, y = (q - x) / w; sum += m[q]; n++; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+      if (x > 0 && !lab[q - 1] && m[q - 1] >= .3) { lab[q - 1] = 1; st[top++] = q - 1; } if (x < w - 1 && !lab[q + 1] && m[q + 1] >= .3) { lab[q + 1] = 1; st[top++] = q + 1; }
+      if (y > 0 && !lab[q - w] && m[q - w] >= .3) { lab[q - w] = 1; st[top++] = q - w; } if (y < h - 1 && !lab[q + w] && m[q + w] >= .3) { lab[q + w] = 1; st[top++] = q + w; }
+    }
+    const bw = x1 - x0 + 1, bh = y1 - y0 + 1; if (n < 12 || bw < 6 || bh < 3 || sum / n < .5) continue;
+    const d = bw * bh * 1.6 / (2 * (bw + bh)), sx = cv.width / w, sy = cv.height / h; // modellen markerar en krympt yta: vidga till hela raden
+    const X0 = Math.max(0, (x0 - d) * sx), Y0 = Math.max(0, (y0 - d) * sy), X1 = Math.min(cv.width, (x1 + 1 + d) * sx), Y1 = Math.min(cv.height, (y1 + 1 + d) * sy);
+    boxes.push({ x: X0, y: Y0, w: X1 - X0, h: Y1 - Y0 });
+  }
+  return boxes;
+}
+async function ppRec(cv, b) { // läs en textrad: text och säkerhet (0–1)
+  const w = Math.max(24, Math.min(960, Math.round(48 * b.w / b.h))), c = document.createElement("canvas"); c.width = w; c.height = 48;
+  const x = c.getContext("2d"); x.imageSmoothingQuality = "high"; x.drawImage(cv, b.x, b.y, b.w, b.h, 0, 0, w, 48);
+  const out = await PP.rec.run({ [PP.rec.inputNames[0]]: ppTensor(c, w, 48, [.5, .5, .5], [.5, .5, .5]) }), o = out[PP.rec.outputNames[0]], T = o.dims[1], C = o.dims[2], d = o.data;
+  let txt = "", last = 0, conf = 0, k = 0;
+  for (let t = 0; t < T; t++) { let bi = 0, bv = -1; for (let j = 0, q = t * C; j < C; j++) if (d[q + j] > bv) { bv = d[q + j]; bi = j; } if (bi && bi !== last) { txt += PP.keys[bi] || ""; conf += bv; k++; } last = bi; }
+  return { txt, conf: k ? conf / k : 0 };
+}
+function fixAll(t) { // alla serienummer i en läst rad
+  const toks = String(t).trim().split(/\s+/), out = toks.flatMap(fixDigits); let run = [];
+  const flush = () => { if (run.length > 1 && run.join("").length >= 5) out.push(run.join("")); run = []; }; // nummer skrivet i grupper ("6612 3456") sätts ihop
+  toks.forEach(k => /^\d+$/.test(k) ? run.push(k) : flush()); flush(); return [...new Set(out)];
+}
+function ppMerge(bs) { // glesa siffror kan hittas som flera bitar: bitar på samma rad slås ihop till en rad
+  const out = [];
+  for (const b of bs.slice().sort((p, q) => p.x - q.x)) {
+    const m = out.find(o => Math.abs(o.y + o.h / 2 - b.y - b.h / 2) < Math.min(o.h, b.h) * .5 && b.x - o.x - o.w < Math.max(o.h, b.h) * 2 && Math.max(o.h, b.h) < Math.min(o.h, b.h) * 1.8);
+    if (!m) { out.push({ ...b }); continue; }
+    const x1 = Math.max(m.x + m.w, b.x + b.w), y0 = Math.min(m.y, b.y), y1 = Math.max(m.y + m.h, b.y + b.h); m.w = x1 - m.x; m.y = y0; m.h = y1 - y0;
+  }
+  return out;
+}
+async function ppRead(cv, o = {}) { // läs sifferremsan. o.box = läs om samma rad i en ny bild (utan ny sökning), o.min = lägsta säkerhet
+  const min = o.min || .8, H = cv.height;
+  const bs = o.box ? [o.box] : ppMerge(await lock(() => ppDet(cv, 768 / cv.width))).map(b => ({ ...b, d: Math.abs((b.y + b.h / 2) / H - .5) })).filter(b => b.d <= .25 && b.w > b.h).sort((p, q) => p.d - q.d).slice(0, 2); // raderna närmast rutans mittlinje
+  const out = []; let low = false, cut = false;
+  for (const b of bs) {
+    const edge = !o.box && (b.x <= b.h * .5 || b.x + b.w >= cv.width - b.h * .5), r = await lock(() => ppRec(cv, b)), ns = fixAll(r.txt); // edge = raden når (nästan) bildens kant: numret kan vara avklippt
+    if (edge && ns.length && !o.min) cut = true; else if (ns.length && r.conf >= min) ns.forEach(n => out.push({ n, box: b, hi: r.conf >= .8 && !edge })); else if (/\d/.test(r.txt)) low = true;
+  }
+  return { c: [...new Set(out.map(x => x.n))], hi: [...new Set(out.filter(x => x.hi).map(x => x.n))], box: out[0] ? out[0].box : null, seen: bs.length > 0, low, cut, hpx: bs[0] ? bs[0].h : 0 };
+}
+async function ppPhoto(cv) { // helt foto: först bildens mitt i hög upplösning, sedan hela bilden. Säkra läsningar närmast mitten först
+  const out = [], L = typLen();
+  for (const f of [.5, 1]) {
+    const c = f === 1 ? cv : cropTo(cv, cv.width, cv.height, .25, .25, .5, .5, Math.round(cv.width * .5));
+    const bs = ppMerge(await lock(() => ppDet(c, Math.min(1, 1280 / Math.max(c.width, c.height))))).filter(b => b.w > b.h).map(b => ({ ...b, d: Math.hypot((b.x + b.w / 2) / c.width - .5, (b.y + b.h / 2) / c.height - .5) * f })).sort((p, q) => p.d - q.d).slice(0, 10);
+    for (const b of bs) { const r = await lock(() => ppRec(c, b)); if (r.conf >= .6) fixAll(r.txt).forEach(n => out.push({ n, hi: r.conf >= .8, s: r.conf - b.d + (r.conf >= .8 ? 1 : 0) })); }
+    if (out.some(o => o.hi && (!L || o.n.length === L))) break; // säker träff i mitten: hela bilden behöver inte läsas
+  }
+  out.sort((p, q) => q.s - p.s); return { c: [...new Set(out.map(o => o.n))], hi: [...new Set(out.filter(o => o.hi).map(o => o.n))] };
+}
+// ---------- Automatisk sifferläsning: lokalt i telefonen, utan knapptryck och utan dagsgräns ----------
+const LIVE = { run: false, cand: null, i: 0, seen: "", seenT: 0, az: 0, small: 0, manual: 0 };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const grow = (b, cv) => { const x = Math.max(0, b.x - b.h * .25), y = Math.max(0, b.y - b.h * .12); return { x, y, w: Math.min(cv.width - x, b.w + b.h * .5), h: Math.min(cv.height - y, b.h * 1.24), d: b.d }; }; // lite marginal för handskak
+async function live() {
+  if (LIVE.run) return; LIVE.run = true;
+  const v = $("vid"), st = t => { if (S.mode === "ocr") $("stat").textContent = t; };
+  try {
+    while (S.stream && S.mode === "ocr") {
+      const el = document.activeElement, typing = el && el.tagName === "INPUT" && el.type === "text";
+      if (S.busy || typing || !v.videoWidth || $("vScan").classList.contains("hide") || !$("modal").classList.contains("hide")) {
+        LIVE.cand = null; if (typing && !S.busy) st("OCR: pausad medan du skriver"); await sleep(250); continue;
+      }
+      if (!PP.ok && !PP.p && Date.now() - PP.t0 > 15000) ppInit().catch(() => { }); // nytt försök om nedladdningen misslyckades
+      const ai = PP.ok;
+      if (!ai && PP.p && Date.now() - PP.t0 < 4000) { st("OCR: startar läsmotorn…"); await sleep(150); continue; }
+      const tag = ai ? "OCR" : PP.p ? `OCR (enkel läsmotor, AI-motorn laddas ${PP.pct} %)` : "OCR (enkel läsmotor)";
+      const cv = grabStrip(v, ai ? 2048 : 1000), tracked = !!(ai && LIVE.cand && LIVE.cand.box);
+      let r;
+      try { r = ai ? await ppRead(cv, tracked ? { box: LIVE.cand.box } : {}) : { c: await readStrip(cv, SCALES[LIVE.i++ % SCALES.length]), seen: true }; }
+      catch (e) { console.warn(e); LIVE.cand = null; st("OCR: automatisk läsning kunde inte starta – tryck Läs siffror"); await sleep(4000); continue; }
+      if (S.mode !== "ocr" || S.busy || !S.stream) continue; // läget ändrades under läsningen
+      const L = typLen(), top = r.c.find(x => L && x.length === L) || r.c[0] || "", t = Date.now();
+      if (top && LIVE.cand && LIVE.cand.n === top) LIVE.cand.k++;
+      else if (tracked) { LIVE.cand = null; continue; } // raden flyttade sig eller lästes annorlunda: sök om direkt
+      else LIVE.cand = top ? { n: top, k: 1, box: ai && r.box ? grow(r.box, cv) : null } : null;
+      // godkänns när två läsningar av två olika bilder är överens (avvikande längd kräver fyra)
+      const pick = LIVE.cand && LIVE.cand.k >= (L && top.length !== L ? 4 : 2) ? top : "";
+      if (top && top === LIVE.seen && t - LIVE.seenT < 4000) { LIVE.seenT = t; LIVE.cand = null; st(`OCR: ${top} är hanterat – sikta på nästa lås`); await sleep(250); continue; }
+      if (pick) {
+        S.busy = true; LIVE.seen = pick; setZoom(Z.v.ocr, true); // zoomnivån som fungerade sparas till nästa lås
+        try { await save(pick, "OCR (auto)", { alts: r.c.filter(x => x !== pick).slice(0, 4) }); }
+        finally { LIVE.seenT = Date.now(); LIVE.cand = null; S.busy = false; }
+        continue;
+      }
+      st(top ? `${tag}: ser ${top} – håll stilla` : r.cut ? `${tag}: hela numret får inte plats i rutan – backa eller zooma ut` : r.low ? `${tag}: ser siffror men oskarpt – håll stilla, backa lite och zooma in` : ai && r.seen && r.hpx < 26 ? `${tag}: texten är för liten – zooma in` : `${tag}: sikta på sifferraden`);
+      if (ai && !tracked && t - LIVE.az > 900 && t - LIVE.manual > 8000) { // zoomen ställs in av sig själv: ut när numret inte får plats, in (kamerans zoom) när texten är för liten
+        if (r.cut) { LIVE.az = t; LIVE.noIn = t + 5000; LIVE.cand = null; camZoomBy(1 / 1.25); }
+        else if (Z.hw && r.seen && r.hpx < 34 && t > (LIVE.noIn || 0)) { if (++LIVE.small >= 2) { LIVE.small = 0; LIVE.az = t; LIVE.cand = null; camZoomBy(Math.min(1.6, 48 / Math.max(8, r.hpx))); } }
+        else LIVE.small = 0;
+      }
+      await sleep(top ? 30 : 120);
+    }
+  } finally { LIVE.run = false; }
 }
 function rankOcr(votes) { // rätt längd först, sedan flest röster (korta fragment hjälper längre kandidater som innehåller dem)
   const L = typLen(), ks = Object.keys(votes), sc = m => votes[m] + ks.reduce((a, n) => a + (n !== m && m.includes(n) ? votes[n] : 0), 0);
   return ks.sort((a, b) => ((L && b.length === L) - (L && a.length === L)) || sc(b) - sc(a) || b.length - a.length);
 }
-async function ocr(cvs) {
+async function ocr(cvs, strip) { // strip = bilderna är sifferremsor från kameran (annars ett helt foto)
   toast("Läser siffror…", 30000); $("cands").innerHTML = "";
   const votes = {}, add = (n, w) => votes[n] = (votes[n] || 0) + w, L = typLen(), okLen = () => Object.keys(votes).length && (!L || Object.keys(votes).some(n => n.length === L));
-  if (OCR_SPACE_KEY) {
+  let sure = false;
+  if (!PP.ok) await Promise.race([ppInit().catch(() => { }), sleep(strip ? 1500 : 10000)]); // ge AI-läsmotorn en chans att bli klar
+  try { // lokal läsning först: är en majoritet av bilderna säkert överens om numret behövs inget moln
+    const cnt = {};
+    for (let i = 0; i < cvs.length; i++) {
+      const r = PP.ok ? (strip ? await ppRead(cvs[i], { min: .6 }) : await ppPhoto(cvs[i])) : { c: strip ? await readStrip(cvs[i], SCALES[i % SCALES.length]) : [] }, hi = r.hi || r.c;
+      r.c.forEach((n, j) => add(n, (j ? 1 : 2) + (hi.includes(n) ? 2 : 0))); const top = hi.find(n => !L || n.length === L); if (top) cnt[top] = (cnt[top] || 0) + 1;
+    }
+    sure = Object.values(cnt).some(k => k > cvs.length / 2);
+  } catch (e) { console.warn(e); }
+  if (!sure && OCR_SPACE_KEY) {
     const rs = await Promise.allSettled(cvs.map(c => ocrCloud(pad(c))));
     rs.forEach(r => r.status === "fulfilled" ? r.value.forEach(n => add(n, 2)) : console.warn(r.reason));
     if (rs.every(r => r.status === "rejected")) toast("Molnläsning misslyckades – provar lokalt…", 2500);
   }
-  try {
+  if (!strip && !PP.ok && !okLen()) try { // reserv för foton när AI-läsmotorn inte gått att ladda: Tesseract på hela bilden
     const mid = Math.floor(cvs.length / 2), order = [cvs[mid], ...cvs.filter((_, i) => i !== mid)];
     for (const c of order) { if (okLen()) break; (await ocrLocal(pad(c))).forEach(n => add(n, 1)); }
   } catch (e) { $("toast").classList.add("hide"); return toast("OCR-fel: " + e.message, 4000); }
   $("toast").classList.add("hide");
   const list = rankOcr(votes);
   if (!list.length) return toast("Hittade inga siffror – zooma/lys, vinkla bort blänk och försök igen", 4000);
-  await save(list[0], "OCR", { alts: list.slice(1, 5) }); // en enda bekräftelse, med andra tolkningar som knappar
+  await save(list[0], "OCR", { alts: list.slice(1, 5), unsure: !sure }); // en enda bekräftelse, med andra tolkningar som knappar
 }
 $("read").onclick = async () => {
   const v = $("vid"); if (!v.videoWidth || S.busy) return; S.busy = true;
-  try { const fr = []; for (let i = 0; i < 3; i++) { fr.push(grabBox(v)); if (i < 2) await new Promise(r => setTimeout(r, 200)); } await ocr(fr); }
+  try { const fr = []; for (let i = 0; i < 3; i++) { fr.push(grabStrip(v, 2048)); if (i < 2) await sleep(120); } await ocr(fr, true); }
   finally { S.busy = false; }
 };
 // Ta foto med telefonens egen kamera (iPhone: ger tillgång till blixt/ficklampa)
@@ -476,7 +729,7 @@ $("file").onchange = async e => {
   const img = await createImageBitmap(f); const sc = Math.min(1, 3000 / Math.max(img.width, img.height));
   const w = Math.round(img.width * sc), h = Math.round(img.height * sc);
   if (S.mode === "qr") { const val = await decodeQR(img, w, h, true); val ? save(val, "QR (foto)") : toast("Hittade ingen QR-kod i fotot", 3000); }
-  else { const cv = document.createElement("canvas"); cv.width = w; cv.height = h; cv.getContext("2d").drawImage(img, 0, 0, w, h); await ocr([cv]); }
+  else { const cv = document.createElement("canvas"); cv.width = w; cv.height = h; cv.getContext("2d").drawImage(img, 0, 0, w, h); S.busy = true; try { await ocr([cv]); } finally { S.busy = false; } }
 };
 $("addm").onclick = () => { const v = $("manual").value.trim(); if (v) { save(v, "Manuell", { direct: true }); $("manual").value = ""; } };
 
