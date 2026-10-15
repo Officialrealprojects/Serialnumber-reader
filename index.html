@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Inläsning - Smarta Lås (V6)</title>
+<title>Inläsning - Smarta Lås (V7)</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%231f5fbf'/%3E%3Cg fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' transform='translate%284 4%29 scale%28.67%29'%3E%3Crect x='3' y='11' width='18' height='11' rx='2'/%3E%3Cpath d='M7 11V7a5 5 0 0 1 10 0v4'/%3E%3C/g%3E%3C/svg%3E">
 <meta name="theme-color" content="#1f2937">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -59,6 +59,9 @@ h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
 .chips button.pl{padding:7px 12px;font-size:15px}.chips button.pl.sec{color:var(--tx)}
 .chip button{padding:5px 10px;border:0;background:none;color:var(--mut);font-size:18px;line-height:1}
 #toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#1f2937;color:#fff;padding:10px 16px;border-radius:6px;z-index:9;max-width:90%}
+#pmodal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:10;padding:20px}
+#pmodal label{display:flex;flex-direction:column;gap:3px}
+.nextbar{display:flex;gap:8px;align-items:center;justify-content:space-between;border:1px solid var(--warn);border-radius:8px;padding:8px 10px;margin:10px 0;background:color-mix(in srgb,var(--warn) 10%,var(--card))}
 #modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:10;padding:20px}
 .dlg{background:var(--card);border-radius:8px;max-width:380px;width:100%;overflow:hidden;border:1px solid var(--bd)}
 .dlg.err{border:2px solid var(--bad)}
@@ -113,6 +116,7 @@ h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
   <div class="tabs"><button id="tScan">Skanna</button><button id="tList" class="sec">Lista (<span id="cnt">0</span>)</button><button id="tPal" class="sec">Pall</button></div>
 
   <div id="vScan">
+    <div class="row hide" id="pallrow"><span class="fit mut">Skanna till</span><select id="actsel" aria-label="Pall att skanna till"></select><button class="sec fit" id="newpall"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Ny pall</button></div>
     <div class="seg"><button id="mQR">QR-kod</button><button id="mOCR" class="sec">Siffror (OCR)</button></div>
     <div id="vwrap"><video id="vid" playsinline muted></video><div id="box"></div><div id="stat"></div></div>
     <div class="row">
@@ -121,6 +125,7 @@ h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
       <button id="readqr"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M20 20h.01M17 17v3"/></svg>Läs QR</button>
       <button id="read" class="hide"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>Läs siffror</button>
     </div>
+    <div class="nextbar hide" id="nxbar"><span id="nxbtxt"></span><button class="sec fit" id="nxbclr" style="padding:6px 10px">Ångra</button></div>
     <div class="row" id="cands"></div>
     <div class="row" id="zrow"><span class="fit mut" id="zlab">Zoom</span><input type="range" id="zoom" min="1" max="1" step="0.1" aria-label="Zoom"></div>
     <div class="row hide" id="camrow"><span class="fit mut">Kamera</span><select id="camsel" aria-label="Kamera"></select></div>
@@ -167,6 +172,10 @@ h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
       <div class="mut">Antal lås längs X-axeln, längs Y-axeln och antal våningar. Platserna fylls i skanningsordning: du börjar på X 1 och lastar utmed Y, därefter nästa X-position, och sist nästa våning. Gäller hela projektet.</div>
       <div class="row"><input type="text" id="dx" inputmode="numeric" placeholder="X"><input type="text" id="dy" inputmode="numeric" placeholder="Y"><input type="text" id="dz" inputmode="numeric" placeholder="Våningar"></div>
       <button id="sdims">Spara pallstorlek</button></div>
+    <div class="card"><h4>Plats för nästa lås</h4>
+      <div class="mut">Nya lås hamnar automatiskt på närmaste lediga plats (luckor efter borttagna lås fylls först). Vill du att nästa skannade lås ska hamna på en viss plats, välj den här. Gäller ett lås, sedan blir det automatiskt igen.</div>
+      <div class="row"><button class="sec" id="nxpick">Välj plats för nästa lås</button><button class="sec fit hide" id="nxclr">Automatiskt</button></div>
+      <div class="mut" id="nxinfo"></div></div>
     <div class="card"><h4>Sök lås</h4>
       <input type="text" id="q" placeholder="Serienummer (hela eller början)">
       <div class="row" id="qres"></div><div class="found" id="qinfo"></div></div>
@@ -201,6 +210,12 @@ h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
 </div>
 </div>
 <div id="toast" class="hide"></div>
+<div id="pmodal" class="hide"><div class="dlg"><div class="dh" id="pdh"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.1-7-11.5a7 7 0 0 1 14 0C19 14.9 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><span id="ptl"></span></div><div class="db">
+  <div class="mut" id="ptx"></div>
+  <div class="row"><label class="mut">Pall<select id="pp"></select></label><label class="mut">Plan<select id="pz"></select></label></div>
+  <div class="row"><label class="mut">X<select id="px"></select></label><label class="mut">Y<select id="py"></select></label></div>
+  <div id="pst" style="font-weight:600;margin:6px 0"></div>
+  <div class="row"><button class="sec" id="pno">Avbryt</button><button id="pyes">Fortsätt</button></div></div></div></div>
 <div id="modal" class="hide"><div class="dlg" id="dlg"><div class="dh" id="dh"></div><div class="db"><div id="mt"></div><input type="text" id="mval" class="hide"><div class="row hide" id="malts"></div><div class="row"><button class="sec" id="mno">Avbryt</button><button id="myes"></button></div></div></div></div>
 
 <script>
@@ -243,7 +258,7 @@ async function processQr() {
 function show() {
   $("home").classList.toggle("hide", !!S.code);
   $("proj").classList.toggle("hide", !S.code);
-  if (S.code) { $("ptitle").textContent = S.pname; $("pcode").textContent = S.code; S.limit = localStorage.getItem("limit_" + S.code) || ""; $("limit").value = S.limit; S.lop = localStorage.getItem("limitop_" + S.code) || "ge"; $("lop").value = S.lop; loadWatch(); load().then(processQr); subscribe(); startCam(); }
+  if (S.code) { $("ptitle").textContent = S.pname; $("pcode").textContent = S.code; S.limit = localStorage.getItem("limit_" + S.code) || ""; $("limit").value = S.limit; S.lop = localStorage.getItem("limitop_" + S.code) || "ge"; $("lop").value = S.lop; loadWatch(); { const n = localStorage.getItem("next_" + S.code); S.next = n != null && n !== "" ? +n : null; } load().then(() => { initAct(); renderNext(); processQr(); }); subscribe(); startCam(); }
   else { stopCam(); $("name").value = S.me; let n = 0; try { n = JSON.parse(localStorage.getItem(IS.key) || "[]").length; } catch { } if (n) toast(`${n} kod(er) från iPhone-skannern väntar – öppna ett projekt så sparas de`, 6000); }
 }
 function needName() { S.me = $("name").value.trim(); if (!S.me) { toast("Skriv ditt namn först"); return false; } localStorage.setItem("me", S.me); return true; }
@@ -258,17 +273,23 @@ $("join").onclick = async () => {
   const { data } = await db.from("projects").select("*").eq("code", code).maybeSingle();
   if (!data) return toast("Hittar ingen sådan kod"); open_(data.code, data.name);
 };
-$("leave").onclick = () => { localStorage.removeItem("code"); localStorage.removeItem("pname"); S.code = null; if (S.ch) db.removeChannel(S.ch); show(); };
+$("leave").onclick = () => {
+  localStorage.removeItem("code"); localStorage.removeItem("pname"); S.code = null; if (S.ch) db.removeChannel(S.ch);
+  Object.assign(S, { scans: [], dims: null, act: null, next: null, hit: null, hitCell: null, last: "", lastT: 0, pall: 0 }); S.sel.clear(); S.planSel.clear(); show();
+};
 $("isurl").value = location.origin + location.pathname + "?qr=";
 $("iscopy").onclick = () => { navigator.clipboard?.writeText($("isurl").value).then(() => toast("Adressen kopierad"), () => { $("isurl").select(); toast("Markera och kopiera adressen"); }); };
 $("istest").onclick = e => { e.preventDefault(); try { localStorage.setItem(IS.key, JSON.stringify(["70053229"])); } catch { } processQr(); };
 $("copy").onclick = e => { e.preventDefault(); navigator.clipboard?.writeText(S.code); toast("Koden kopierad"); };
 
 // ---------- Data ----------
-const parseDims = t => { const [x, y, z] = String(t || "").split(",").map(Number); return x >= 1 && y >= 1 && z >= 1 ? { x, y, z } : null; };
+const parseDims = t => { const [x, y, z, n] = String(t || "").split(",").map(Number); return x >= 1 && y >= 1 && z >= 1 ? { x, y, z, n: n >= 1 ? n : 1 } : null; };
+const capOf = () => S.dims.x * S.dims.y * S.dims.z;
+const nPall = () => S.dims ? Math.max(S.dims.n || 1, ...S.scans.filter(r => r.slot != null).map(r => Math.floor(r.slot / capOf()) + 1)) : 1; // skapade pallar (även tomma)
 const hint = e => /slot|dims/i.test(e.message) ? "Databasen saknar nya kolumner – kör uppdateringsskriptet i Supabase (se instruktionerna)." : "Fel: " + e.message;
 const esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 function pos(slot) { if (slot == null || !S.dims) return null; const { x: X, y: Y, z: Z } = S.dims, cap = X * Y * Z, r = slot % cap; return { p: Math.floor(slot / cap) + 1, x: Math.floor(r / Y) % X + 1, y: r % Y + 1, z: Math.floor(r / (X * Y)) + 1 }; }
+const slotOf = (p, z, x, y) => { const { x: X, y: Y, z: Z } = S.dims; return (p - 1) * X * Y * Z + (z - 1) * X * Y + (x - 1) * Y + (y - 1); };
 const posTxt = p => p ? `P${p.p} X${p.x} Y${p.y} V${p.z}` : "";
 async function load() {
   const [{ data, error }, { data: pj }] = await Promise.all([db.from("scans").select("*").eq("project_code", S.code).order("scanned_at", { ascending: false }), db.from("projects").select("dims").eq("code", S.code).maybeSingle()]);
@@ -298,8 +319,9 @@ function render() {
     const pz = document.createElement("td"); pz.className = "mut"; pz.textContent = posTxt(pos(r.slot));
     const ed = document.createElement("td"), eb = document.createElement("button"); eb.className = "sec"; eb.style.padding = "6px 9px"; eb.setAttribute("aria-label", "Redigera " + r.serial);
     eb.innerHTML = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>'; eb.onclick = () => editScan(r); ed.appendChild(eb);
+    if (S.dims) { const mb = document.createElement("button"); mb.className = "sec"; mb.style.cssText = "padding:6px 9px;margin-left:4px"; mb.setAttribute("aria-label", "Flytta " + r.serial + " till annan plats"); mb.innerHTML = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/></svg>'; mb.onclick = () => moveScan(r); ed.appendChild(mb); }
     tr.append(c, s, pz, t, b, ed); tb.appendChild(tr);
-  }); upd(); renderPall(); renderPlans();
+  }); upd(); renderPall(); renderPlans(); renderAct(); renderNext();
 }
 function upd() { $("del").textContent = `Ta bort (${S.sel.size})`; $("del").disabled = !S.sel.size; $("all").checked = S.scans.length > 0 && S.sel.size === S.scans.length; }
 $("all").onchange = e => { S.sel = e.target.checked ? new Set(S.scans.map(r => r.id)) : new Set(); render(); };
@@ -324,18 +346,124 @@ async function save(serial, method, o = {}) {
     if (!r) return toast("Inte sparad", 1500);
     if (r === v) break; v = r;
   }
-  serial = v; let slot = null;
-  if (S.dims) { const used = new Set(S.scans.map(r => r.slot).filter(n => n != null)); slot = 0; while (used.has(slot)) slot++; }
+  serial = v; let slot = null, target = null;
+  if (S.dims) {
+    const rs = await freshSlots(), used = new Set(rs.map(r => r.slot).filter(n => n != null));
+    if (S.next != null) { // vald plats för nästa lås (bekräftad i förväg); upptas den, flyttas låset där till närmaste lediga plats
+      target = S.next; const occ = rs.find(r => r.slot === target);
+      if (occ) { used.add(target); let n = 0; while (used.has(n)) n++; const { error: e1 } = await db.from("scans").update({ slot: n }).eq("id", occ.id); if (e1) return toast(hint(e1), 5000); used.add(n); }
+      slot = target;
+    } else { // närmaste lediga plats på pallen du skannar till (luckor efter borttagna lås fylls först)
+      const cap = capOf(), a = S.act || 1, free = b => { for (let s = (b - 1) * cap; s < b * cap; s++) if (!used.has(s)) return s; return null; };
+      slot = free(a);
+      if (slot == null) { // pallen är full: föreslå nästa pall med plats, annars en ny pall
+        let b = null; for (let k = 1; k <= nPall(); k++) if (k !== a && free(k) != null && (b == null || (k > a && b < a))) b = k;
+        const ny = b == null; if (ny) b = nPall() + 1;
+        if (!(await dialog({ err: 1, title: `Pall ${a} är full`, text: `Alla ${cap} platser på pall ${a} är upptagna. Lägg ${serial} på pall ${b}${ny ? " (ny pall)" : ""}? Nya lås skannas sedan till pall ${b}.`, yes: `Till pall ${b}` }))) return toast("Inte sparad", 1500);
+        if (ny && !(await setPallCount(b))) return;
+        slot = free(b);
+      }
+    }
+  }
   let error;
   for (let t = 0; t < 5; t++) {
     ({ error } = await db.from("scans").insert({ project_code: S.code, serial, method, scanned_by: S.me, slot }));
-    if (!error || error.code !== "23505" || slot == null) break; slot++;
+    if (!error || error.code !== "23505" || slot == null) break;
+    const used = new Set((await freshSlots()).map(r => r.slot).filter(n => n != null)), cap = capOf(), b = Math.floor(slot / cap); slot = b * cap; while (used.has(slot) && slot < (b + 1) * cap - 1) slot++; // någon annan tog platsen just nu: nästa lediga på samma pall
+    if (used.has(slot)) return toast(`Pall ${b + 1} blev full precis nu – välj en annan pall och skanna igen`, 5000);
   }
   if (error) return toast(hint(error), 5000);
+  if (target != null && slot === target) setNext(null);
+  if (slot != null && S.dims) setAct(Math.floor(slot / capOf()) + 1); // pallen du senast skannade till blir förval
   navigator.vibrate?.(80); const p = pos(slot);
   toast(p ? `Sparad. Placera på pall ${p.p}, X ${p.x}, Y ${p.y}, plan ${p.z}` : `Sparad: ${serial}`, 4000); load();
 }
 
+// ---------- Flera pallar: vilken pall nya lås skannas till (förval = den du använde senast) ----------
+async function setPallCount(n) {
+  const d = S.dims, { error } = await db.from("projects").update({ dims: [d.x, d.y, d.z, n].join(",") }).eq("code", S.code);
+  if (error) { toast(hint(error), 5000); return false; } d.n = n; return true;
+}
+function setAct(a) { S.act = a; try { localStorage.setItem("act_" + S.code, String(a)); } catch { } S.pall = a - 1; renderAct(); }
+function initAct() { // förval: senast använda pall på den här telefonen, annars pallen där senaste låset i projektet skannades in
+  if (!S.dims) return; let a = +localStorage.getItem("act_" + S.code) || 0;
+  if (!a) { const last = S.scans.filter(r => r.slot != null).sort((p, q) => new Date(q.scanned_at) - new Date(p.scanned_at))[0]; a = last ? Math.floor(last.slot / capOf()) + 1 : 1; }
+  S.act = Math.min(a, nPall() + 1); S.pall = S.act - 1; renderAct();
+}
+function renderAct() {
+  const row = $("pallrow"); row.classList.toggle("hide", !S.dims); if (!S.dims) return;
+  if (!S.act) S.act = 1;
+  const cap = capOf(), n = Math.max(nPall(), S.act), cnt = Array(n + 1).fill(0); S.scans.forEach(r => { if (r.slot != null) cnt[Math.floor(r.slot / cap) + 1]++; });
+  const sel = $("actsel"); sel.innerHTML = "";
+  for (let k = 1; k <= n; k++) { const o = document.createElement("option"); o.value = k; o.textContent = `Pall ${k} · ${cnt[k]} av ${cap}${cnt[k] >= cap ? " (full)" : ""}`; sel.appendChild(o); }
+  sel.value = S.act;
+}
+$("actsel").onchange = e => { setAct(+e.target.value); e.target.blur(); toast(`Nya lås skannas till pall ${S.act}`, 2000); };
+$("newpall").onclick = async () => {
+  if (!S.dims) return; const n = nPall() + 1;
+  if (!(await dialog({ title: "Ny pall", text: `Skapa pall ${n}? Nya lås skannas sedan till pall ${n}. Du kan byta pall i listan när som helst.`, yes: `Skapa pall ${n}` }))) return;
+  if (await setPallCount(n)) { setAct(n); toast(`Pall ${n} skapad – nya lås skannas dit`, 3000); renderPall(); }
+};
+// ---------- Platser på pallen: välja plats, flytta lås, plats för nästa lås ----------
+async function freshSlots() { // platserna direkt från databasen (så att borttagna lås från en annan telefon räknas som lediga)
+  try { const { data, error } = await db.from("scans").select("id,serial,slot").eq("project_code", S.code); if (!error && Array.isArray(data)) return data; } catch { }
+  return S.scans.map(r => ({ id: r.id, serial: r.serial, slot: r.slot }));
+}
+S.next = null;
+function setNext(slot) {
+  S.next = slot; try { slot == null ? localStorage.removeItem("next_" + S.code) : localStorage.setItem("next_" + S.code, String(slot)); } catch { }
+  renderNext();
+}
+function renderNext() {
+  const p = S.next != null && S.dims ? pos(S.next) : null, t = p ? `Nästa lås placeras på ${posTxt(p)} (pall ${p.p}, plan ${p.z}, X ${p.x}, Y ${p.y})` : "";
+  $("nxbar").classList.toggle("hide", !p); $("nxbtxt").textContent = t; $("nxinfo").textContent = p ? t + "." : S.dims ? "Automatiskt: närmaste lediga plats." : "Ange pallens storlek först.";
+  $("nxclr").classList.toggle("hide", !p); $("nxpick").disabled = !S.dims;
+}
+function pickPlace(title, text, start, ignoreId) { // välj pall, plan, X och Y; visar om platsen är ledig
+  return new Promise(res => {
+    const { x: X, y: Y, z: Z } = S.dims, cap = X * Y * Z, np = nPall() + 1;
+    const fill = (id, n, v) => { const s = $(id); s.innerHTML = ""; for (let i = 1; i <= n; i++) { const o = document.createElement("option"); o.value = i; o.textContent = i; s.appendChild(o); } s.value = Math.min(n, v); };
+    const p0 = start != null ? pos(start) : { p: S.act || 1, z: 1, x: 1, y: 1 };
+    fill("pp", np, p0.p); fill("pz", Z, p0.z); fill("px", X, p0.x); fill("py", Y, p0.y);
+    $("ptl").textContent = title; $("ptx").textContent = text;
+    const cur = () => slotOf(+$("pp").value, +$("pz").value, +$("px").value, +$("py").value);
+    const upd = () => { const o = S.scans.find(r => r.slot === cur() && r.id !== ignoreId), st = $("pst"); st.textContent = o ? `Upptagen av ${o.serial}` : cur() === start ? "Nuvarande plats" : "Ledig"; st.style.color = o ? "var(--bad)" : "var(--ok)"; };
+    ["pp", "pz", "px", "py"].forEach(id => $(id).onchange = upd); upd();
+    $("pmodal").classList.remove("hide");
+    const done = v => { $("pmodal").classList.add("hide"); res(v); };
+    $("pno").onclick = () => done(null); $("pyes").onclick = () => done(cur());
+  });
+}
+async function moveScan(r) { // flytta ett inskannat lås: två bekräftelser, varning och platsbyte om platsen är upptagen
+  if (!S.dims) return toast("Ange pallens storlek först (fliken Pall)", 3000);
+  const old = r.slot, id = r.id, sn = r.serial; // låsets plats innan något ändras
+  const to = await pickPlace(`Flytta ${r.serial}`, `Nu: ${r.slot != null ? posTxt(pos(r.slot)) : "ingen plats"}. Välj ny plats – vilken som helst, även om platserna runt omkring är tomma.`, r.slot, r.id);
+  if (to == null) return; if (to === old) return toast("Låset står redan där", 2000);
+  const occ = (await freshSlots()).find(x => x.slot === to && x.id !== id), from = old != null ? posTxt(pos(old)) : "ingen plats", dest = posTxt(pos(to));
+  if (!(await dialog(occ ? { err: 1, title: "Platsen är upptagen", text: `${dest} är upptagen av ${occ.serial}. Fortsätter du byter låsen plats: ${r.serial} → ${dest} och ${occ.serial} → ${old != null ? from : "närmaste lediga plats"}.`, yes: "Byt plats" }
+    : { title: "Flytta lås", text: `Flytta ${r.serial} från ${from} till ${dest}?`, yes: "Fortsätt" }))) return;
+  if (!(await dialog({ err: 1, title: "Bekräfta flytten", text: `Är du säker? ${r.serial} registreras på ${dest}${occ ? ` och ${occ.serial} flyttas` : ""}. Det ändras för alla i projektet.`, yes: "Ja, flytta" }))) return;
+  let e;
+  if (occ) {
+    ({ error: e } = await db.from("scans").update({ slot: null }).eq("id", occ.id)); if (e) return toast(hint(e), 5000); // tillfälligt utan plats (varje plats får bara ha ett lås)
+    ({ error: e } = await db.from("scans").update({ slot: to }).eq("id", id)); if (e) { await db.from("scans").update({ slot: to }).eq("id", occ.id); return toast(hint(e), 5000); }
+    let back = old; if (back == null) { const used = new Set((await freshSlots()).map(x => x.slot).filter(n => n != null)); back = 0; while (used.has(back)) back++; }
+    ({ error: e } = await db.from("scans").update({ slot: back }).eq("id", occ.id)); if (e) return toast(hint(e), 5000);
+  } else { ({ error: e } = await db.from("scans").update({ slot: to }).eq("id", id)); if (e) return toast(e.code === "23505" ? "Platsen blev just upptagen – försök igen" : hint(e), 5000); }
+  toast(`${r.serial} flyttat till ${dest}${occ ? `, ${occ.serial} flyttat` : ""}`, 3500); await load();
+}
+async function pickNext(start) { // välj plats för nästa lås: två bekräftelser, varning om platsen är upptagen
+  if (!S.dims) return toast("Ange pallens storlek först", 3000);
+  const to = await pickPlace("Plats för nästa lås", "Nästa lås du skannar registreras på den här platsen. Därefter fortsätter det automatiskt med närmaste lediga plats.", start != null ? start : S.next);
+  if (to == null) return;
+  const occ = S.scans.find(x => x.slot === to), dest = posTxt(pos(to));
+  if (!(await dialog(occ ? { err: 1, title: "Platsen är upptagen", text: `${dest} är upptagen av ${occ.serial}. Fortsätter du flyttas ${occ.serial} till närmaste lediga plats när nästa lås sparas.`, yes: "Fortsätt ändå" }
+    : { title: "Plats för nästa lås", text: `Nästa skannade lås registreras på ${dest}?`, yes: "Fortsätt" }))) return;
+  if (!(await dialog({ err: 1, title: "Bekräfta platsen", text: `Är du säker? Nästa lås hamnar på ${dest}${occ ? ` och ${occ.serial} flyttas` : ""}.`, yes: "Ja, välj platsen" }))) return;
+  setNext(to); toast("Nästa lås placeras på " + dest, 3000);
+}
+$("nxpick").onclick = () => pickNext();
+$("nxclr").onclick = $("nxbclr").onclick = () => { setNext(null); toast("Nästa lås placeras automatiskt", 2000); };
 // ---------- Redigera ett serienummer ----------
 async function editScan(r) {
   const v = await dialog({ title: "Redigera serienummer", text: "Rätta serienumret och tryck Spara.", yes: "Spara ändring", value: r.serial });
@@ -469,6 +597,7 @@ async function tryAll(cv) {
   const w = await zw(cv); if (w) return w;
   if (detector) { try { const r = await detector.detect(cv); if (r.length) return r[0].rawValue; } catch { } }
   const z = zx(cv); if (z) return z;
+  if (typeof jsQR === "undefined") return null; // reservavkodaren kunde inte laddas
   const d = cv.getContext("2d", { willReadFrequently: true }).getImageData(0, 0, cv.width, cv.height);
   const r = jsQR(d.data, d.width, d.height, { inversionAttempts: "attemptBoth" }); return r ? r.data : null;
 }
@@ -833,7 +962,8 @@ $("read").onclick = async () => {
 $("photo").onclick = () => $("file").click();
 $("file").onchange = async e => {
   const f = e.target.files[0]; e.target.value = ""; if (!f) return;
-  const img = await createImageBitmap(f), qr = S.mode === "qr", sc = Math.min(1, (qr ? 4100 : 3000) / Math.max(img.width, img.height));
+  let img; try { img = await createImageBitmap(f); } catch { return toast("Bilden kunde inte öppnas – prova att ta fotot igen", 4000); }
+  const qr = S.mode === "qr", sc = Math.min(1, (qr ? 4100 : 3000) / Math.max(img.width, img.height));
   const w = Math.round(img.width * sc), h = Math.round(img.height * sc), cv = document.createElement("canvas"); cv.width = w; cv.height = h; // fotot ritas i rätt storlek först (annars beskärs fel)
   const g = cv.getContext("2d", { willReadFrequently: true }); g.imageSmoothingQuality = "high"; g.drawImage(img, 0, 0, w, h); img.close?.();
   S.busy = true;
@@ -842,6 +972,7 @@ $("file").onchange = async e => {
     else await ocr([cv]);
   } finally { S.busy = false; }
 };
+$("manual").onkeydown = e => { if (e.key === "Enter") $("addm").click(); };
 $("addm").onclick = () => { const v = $("manual").value.trim(); if (v) { save(v, "Manuell", { direct: true }); $("manual").value = ""; } };
 
 $("readqr").onclick = async () => {
@@ -923,7 +1054,10 @@ $("wclr").onclick = async () => {
   if (!(await dialog({ err: 1, title: "Töm varningslistan", text: `Ta bort alla ${S.watch.length} serienummer från varningslistan? Redan skannade lås påverkas inte.`, yes: "Töm listan" }))) return;
   S.watch = []; saveWatch(); toast("Varningslistan tömd");
 };
-function dialog(o) {
+// Dialogrutor visas en i taget (kö). Förut kunde två rutor öppnas samtidigt, och då svarade den första aldrig så att skanningen fastnade.
+let DQ = Promise.resolve();
+function dialog(o) { const p = DQ.then(() => dialog1(o)); DQ = p.catch(() => { }); return p; }
+function dialog1(o) {
   return new Promise(res => {
     const v = $("mval"), e = !!o.err; $("dlg").className = "dlg" + (e ? " err" : ""); $("dh").className = "dh" + (e ? " err" : "");
     $("dh").innerHTML = `@ICO@<span></span>`.replace("@ICO@", e ? `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>` : `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>`); $("dh").lastChild.textContent = o.title;
@@ -939,14 +1073,17 @@ function dialog(o) {
 $("sdims").onclick = async () => {
   const v = ["dx", "dy", "dz"].map(id => parseInt($(id).value, 10));
   if (v.some(n => !(n >= 1 && n <= 99))) return toast("Ange tal mellan 1 och 99 i alla tre rutor", 3000);
-  const { error } = await db.from("projects").update({ dims: v.join(",") }).eq("code", S.code); if (error) return toast(hint(error), 5000);
-  S.dims = { x: v[0], y: v[1], z: v[2] };
+  const placed = S.scans.filter(r => r.slot != null).length;
+  if (S.dims && placed && (v[0] !== S.dims.x || v[1] !== S.dims.y || v[2] !== S.dims.z) && !(await dialog({ err: 1, title: "Ändra pallens storlek?", text: `${placed} lås har redan platser. Med ny storlek räknas alla platser om i samma ordning som de fylldes, så låsen får nya koordinater (pall, X, Y, plan) – även för andra i projektet.`, yes: "Ändra ändå" }))) return;
+  const n = S.dims ? Math.max(1, Math.ceil(Math.max(nPall() * capOf(), ...S.scans.filter(r => r.slot != null).map(r => r.slot + 1)) / (v[0] * v[1] * v[2]))) : 1, { error } = await db.from("projects").update({ dims: v.concat(n).join(",") }).eq("code", S.code); if (error) return toast(hint(error), 5000);
+  S.dims = { x: v[0], y: v[1], z: v[2], n };
   const un = S.scans.filter(r => r.slot == null).sort((p, q) => new Date(p.scanned_at) - new Date(q.scanned_at));
   if (un.length) {
     const used = new Set(S.scans.map(r => r.slot).filter(n => n != null)); let n = 0;
     const up = un.map(r => { while (used.has(n)) n++; used.add(n); return { ...r, slot: n }; });
     const { error: e2 } = await db.from("scans").upsert(up); if (e2) return toast(hint(e2), 5000);
   }
+  if (S.next != null) setNext(null); // en vald plats för nästa lås betyder något annat med ny storlek
   toast("Pallstorlek sparad"); load();
 };
 $("q").oninput = () => {
@@ -1198,13 +1335,15 @@ function showSel() {
   const r = S.hit && S.scans.find(x => x.id === S.hit);
   if (r) {
     const p = pos(r.slot), where = p ? `Pall ${p.p} · plan ${p.z} · X ${p.x} · Y ${p.y}` : "Ingen plats ännu";
-    ci.innerHTML = `<div class="sel"><div><div class="mut">Valt lås</div><div class="sn">${esc(r.serial)}</div><div class="mut">${esc(where)} · skannad ${esc(fmt(r.scanned_at))}${r.scanned_by ? " av " + esc(r.scanned_by) : ""}</div></div><div style="display:flex;flex-direction:column;gap:6px"><button class="sec fit" id="cps">Kopiera</button><button class="sec fit" id="eds">Redigera</button></div></div>`;
-    $("eds").onclick = () => editScan(r);
+    ci.innerHTML = `<div class="sel"><div><div class="mut">Valt lås</div><div class="sn">${esc(r.serial)}</div><div class="mut">${esc(where)} · skannad ${esc(fmt(r.scanned_at))}${r.scanned_by ? " av " + esc(r.scanned_by) : ""}</div></div><div style="display:flex;flex-direction:column;gap:6px"><button class="sec fit" id="cps">Kopiera</button><button class="sec fit" id="eds">Redigera</button><button class="sec fit" id="mvs">Flytta</button></div></div>`;
+    $("eds").onclick = () => editScan(r); $("mvs").onclick = () => moveScan(r);
     $("cps").onclick = () => { navigator.clipboard?.writeText(r.serial); toast("Serienumret kopierat", 1500); };
     tip.innerHTML = `<b>${esc(r.serial)}</b><span>${esc(where)}</span>`;
   } else if (S.hitCell) {
     const [i, j, k] = S.hitCell.split(",").map(Number), t = `X ${i + 1} · Y ${j + 1} · plan ${k + 1}`;
-    ci.innerHTML = `<div class="sel"><div><div class="mut">Vald plats</div><div class="sn">Ledig</div><div class="mut">${t}</div></div></div>`;
+    const fs = S.dims ? slotOf((S.pall || 0) + 1, k + 1, i + 1, j + 1) : null;
+    ci.innerHTML = `<div class="sel"><div><div class="mut">Vald plats</div><div class="sn">Ledig</div><div class="mut">${t}</div></div>${fs != null ? '<button class="sec fit" id="nxh">Nästa lås hit</button>' : ""}</div>`;
+    if (fs != null) $("nxh").onclick = () => pickNext(fs);
     tip.innerHTML = `<b>Ledig plats</b><span>${t}</span>`;
   } else ci.innerHTML = "";
 }
@@ -1234,7 +1373,7 @@ function renderPall() {
     for (const id of ["pallnav", "floornav", "cellinfo"]) $(id).innerHTML = ""; $("palcnt").textContent = ""; $("ctl3d").classList.add("hide"); return;
   }
   const { x: X, y: Y, z: Z } = S.dims, cap = X * Y * Z, used = S.scans.filter(r => r.slot != null);
-  const np = Math.max(1, ...used.map(r => Math.floor(r.slot / cap) + 1)); S.pall = clamp(S.pall || 0, 0, np - 1); if (S.floor > Z) S.floor = 0;
+  const np = nPall(); S.pall = clamp(S.pall || 0, 0, np - 1); if (S.floor > Z) S.floor = 0;
   const cells = {}, fc = Array(Z).fill(0); let cnt = 0, lastSlot = -1, lastZ = 1;
   used.forEach(r => { const p = pos(r.slot); if (p.p - 1 !== S.pall) return; cells[`${p.x - 1},${p.y - 1},${p.z - 1}`] = r; fc[p.z - 1]++; cnt++; if (r.slot > lastSlot) { lastSlot = r.slot; lastZ = p.z; } });
   if (S.view === "top" && !S.floor) S.floor = lastZ; // fågelperspektiv: börja på planet du fyller just nu
