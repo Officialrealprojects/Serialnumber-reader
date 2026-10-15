@@ -80,6 +80,12 @@ h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
 #palmsg{padding:6px 0}
 .sel{display:flex;gap:12px;align-items:center;justify-content:space-between;border:1px solid var(--bd);border-radius:8px;padding:10px 12px;margin-top:10px;background:var(--bg)}
 .sel .sn{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.02em;line-height:1.2;word-break:break-all}
+.pmap{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:8px}
+.ptile{display:flex;flex-direction:column;align-items:stretch;gap:6px;text-align:left;background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:10px;font-weight:400}
+.ptile.cur{border:2px solid var(--ac);padding:9px}.ptile.full .pc{color:var(--ok);font-weight:600}
+.ptile.add{align-items:center;justify-content:center;color:var(--mut);border-style:dashed;min-height:96px}
+.pth{display:flex;justify-content:space-between;gap:6px;align-items:flex-start}.pth b{font-size:14px;overflow-wrap:anywhere}.badge.on{background:var(--ac);margin:0;flex:none}
+.pstack{display:flex;flex-direction:column;gap:2px}.pbar{height:6px;border-radius:2px;background:color-mix(in srgb,var(--bd) 80%,transparent);overflow:hidden}.pbar span{display:block;height:100%;background:var(--ac)}
 .lg{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--mut);margin-top:8px}
 .lg i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}.lg i.g{border:1px dashed var(--mut)}
 </style>
@@ -168,6 +174,9 @@ h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
   </div>
 
   <div id="vPal" class="hide">
+    <div class="card hide" id="mapcard"><h4>Alla pallar</h4>
+      <div class="pmap" id="palmap"></div>
+      <div class="mut" id="mapinfo" style="margin-top:8px"></div></div>
     <div class="card"><h4 id="paltitle">Pallens namn och storlek</h4>
       <div class="mut">Varje pall har eget namn och egen storlek: antal lås längs X-axeln, längs Y-axeln och antal våningar. Platserna fylls i skanningsordning: du börjar på X 1 och lastar utmed Y, därefter nästa X-position, och sist nästa våning. Ändringen gäller pallen som visas nedan.</div>
       <div class="row"><label class="mut" style="flex:2">Namn<input type="text" id="dn" placeholder="Pall 1" maxlength="40"></label></div>
@@ -198,9 +207,11 @@ h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
       <button class="bad fit" id="del" disabled>Ta bort (0)</button>
     </div>
     <div class="card hide" id="plansel">
-      <b>Plan att ladda ner</b>
-      <div class="mut">Tryck på de plan du vill ha med i Excel/CSV. Inget valt = alla plan.</div>
-      <div class="chips" id="planchips" style="margin-top:8px"></div>
+      <b>Vad ska laddas ner?</b>
+      <div class="mut">Tryck på det du vill ha med i Excel/CSV. Inget valt = allt.</div>
+      <div id="palpick" class="hide"><div class="mut" style="margin-top:8px">Pallar</div><div class="chips" id="palchips" style="margin-top:4px"></div></div>
+      <div id="planpick" class="hide"><div class="mut" style="margin-top:8px">Plan</div><div class="chips" id="planchips" style="margin-top:4px"></div></div>
+      <label class="mut hide" id="xemptyrow" style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="xempty">Ta med lediga platser (visar exakt vilka platser som är tomma på halvfulla pallar)</label>
       <div class="mut" id="planinfo" style="margin-top:6px"></div>
     </div>
     <div class="card" style="overflow-x:auto">
@@ -276,7 +287,7 @@ $("join").onclick = async () => {
 };
 $("leave").onclick = () => {
   localStorage.removeItem("code"); localStorage.removeItem("pname"); S.code = null; if (S.ch) db.removeChannel(S.ch);
-  Object.assign(S, { scans: [], pals: [], act: null, next: null, cursor: null, hit: null, hitCell: null, last: "", lastT: 0, pall: 0 }); S.sel.clear(); S.planSel.clear(); show();
+  Object.assign(S, { scans: [], pals: [], act: null, next: null, cursor: null, hit: null, hitCell: null, last: "", lastT: 0, pall: 0 }); S.sel.clear(); S.planSel.clear(); S.palSel.clear(); show();
 };
 $("isurl").value = location.origin + location.pathname + "?qr=";
 $("iscopy").onclick = () => { navigator.clipboard?.writeText($("isurl").value).then(() => toast("Adressen kopierad"), () => { $("isurl").select(); toast("Markera och kopiera adressen"); }); };
@@ -537,29 +548,76 @@ $("del").onclick = async () => {
 };
 
 // ---------- Export ----------
-// Val av plan vid export: plan = våning (V i platsen). Inget valt eller bara ett plan = alla.
-S.planSel = new Set();
+// ---------- Export: välj pallar och plan; Excel får en flik per pall + översikt, CSV (Google Kalkylark) en tabell sorterad pall för pall ----------
+// Inget valt = allt. Lediga platser kan tas med så att halvfulla pallar syns tydligt.
+S.planSel = new Set(); S.palSel = new Set();
 const planOf = r => { const p = pos(r.slot); return p ? p.z : 0; }; // 0 = saknar plats
+const palOfRow = r => r.slot == null || !S.pals.length ? 0 : pallOf(r.slot); // 0 = saknar plats
+function chipRow(box, items, sel, again) { // knappar som slås på/av
+  box.innerHTML = "";
+  items.forEach(([k, lab]) => { const b = document.createElement("button"), on = sel.has(k); b.className = "pl" + (on ? "" : " sec"); b.setAttribute("aria-pressed", on); b.textContent = lab; b.onclick = () => { on ? sel.delete(k) : sel.add(k); again(); }; box.appendChild(b); });
+}
 function renderPlans() {
-  const cnt = {}; S.scans.forEach(r => { const z = planOf(r); cnt[z] = (cnt[z] || 0) + 1; });
-  const ks = Object.keys(cnt).map(Number).sort((a, b) => (a || 1e9) - (b || 1e9)), plans = ks.filter(z => z);
-  S.planSel = new Set([...S.planSel].filter(z => cnt[z])); // plan som inte längre finns släpps
-  $("plansel").classList.toggle("hide", plans.length < 2); const box = $("planchips"); box.innerHTML = "";
-  if (plans.length < 2) { S.planSel.clear(); return; }
-  ks.forEach(z => { const b = document.createElement("button"), on = S.planSel.has(z); b.className = "pl" + (on ? "" : " sec"); b.setAttribute("aria-pressed", on);
-    b.textContent = (z ? `Plan ${z}` : "Utan plats") + ` (${cnt[z]})`; b.onclick = () => { on ? S.planSel.delete(z) : S.planSel.add(z); renderPlans(); }; box.appendChild(b); });
-  const n = S.scans.filter(r => !S.planSel.size || S.planSel.has(planOf(r))).length;
-  $("planinfo").textContent = S.planSel.size ? `Laddar ner ${[...S.planSel].sort((a, b) => (a || 1e9) - (b || 1e9)).map(z => z ? "plan " + z : "lås utan plats").join(", ")}: ${n} lås.` : `Inget valt – alla plan laddas ner (${n} lås).`;
+  const has = S.pals.length > 0, pc = {}; S.scans.forEach(r => { const k = palOfRow(r); pc[k] = (pc[k] || 0) + 1; });
+  const pk = has ? [...Array.from({ length: nPall() }, (_, i) => i + 1), ...(pc[0] ? [0] : [])] : [];
+  S.palSel = new Set([...S.palSel].filter(k => pk.includes(k)));
+  const inPal = r => !S.palSel.size || S.palSel.has(palOfRow(r));
+  const zc = {}; S.scans.filter(inPal).forEach(r => { const z = planOf(r); zc[z] = (zc[z] || 0) + 1; });
+  const maxZ = Math.max(0, ...(S.palSel.size ? [...S.palSel] : pk).filter(k => k).map(k => palAt(k).z));
+  const zk = [...Array.from({ length: maxZ }, (_, i) => i + 1), ...(zc[0] ? [0] : [])];
+  S.planSel = new Set([...S.planSel].filter(z => zk.includes(z)));
+  $("plansel").classList.toggle("hide", !has && !S.scans.length);
+  $("palpick").classList.toggle("hide", pk.length < 2); $("planpick").classList.toggle("hide", zk.length < 2); $("xemptyrow").classList.toggle("hide", !has);
+  chipRow($("palchips"), pk.map(k => [k, k ? `${palName(k)} (${pc[k] || 0} av ${capOf(k)})` : `Utan plats (${pc[0]})`]), S.palSel, renderPlans);
+  chipRow($("planchips"), zk.map(z => [z, z ? `Plan ${z} (${zc[z] || 0})` : `Utan plats (${zc[0]})`]), S.planSel, renderPlans);
+  const n = S.scans.filter(r => inPal(r) && (!S.planSel.size || S.planSel.has(planOf(r)))).length;
+  const pt = S.palSel.size ? [...S.palSel].sort((a, b) => (a || 1e9) - (b || 1e9)).map(k => k ? palName(k) : "lås utan plats").join(", ") : has ? "alla pallar" : "alla lås";
+  const zt = S.planSel.size ? ", " + [...S.planSel].sort((a, b) => (a || 1e9) - (b || 1e9)).map(z => z ? "plan " + z : "utan plats").join(", ") : "";
+  $("planinfo").textContent = `Laddar ner ${pt}${zt}: ${n} lås${$("xempty").checked ? " + lediga platser" : ""}.` + (has ? " Excel får en flik per pall och en översikt; CSV (Google Kalkylark) blir en tabell sorterad pall för pall." : "");
 }
-function rows() {
-  const a = [...S.scans].filter(r => !S.planSel.size || S.planSel.has(planOf(r))).sort((p, q) => new Date(p.scanned_at) - new Date(q.scanned_at)); // äldst först
-  return [["Nr", "Serienummer", "Plats", "Datum och tid", "Skannad av", "Metod"], ...a.map((r, i) => [i + 1, String(r.serial), posTxt(pos(r.slot)), fmt(r.scanned_at), r.scanned_by || "", r.method || ""])];
+$("xempty").onchange = () => renderPlans();
+const HEAD = ["Nr", "Serienummer", "Pall", "Plan", "X", "Y", "Plats", "Datum och tid", "Skannad av", "Metod"];
+function exportData() { // {pallar: [{k, namn, rader}], utan: [rader], alla: [rader]} enligt valen
+  const has = S.pals.length > 0, empty = has && $("xempty").checked;
+  const okZ = z => !S.planSel.size || S.planSel.has(z), okP = k => !S.palSel.size || S.palSel.has(k);
+  const row = (r, s) => { const p = pos(s); return r ? [String(r.serial), palName(p.p), p.z, p.x, p.y, posTxt(p), fmt(r.scanned_at), r.scanned_by || "", r.method || ""] : ["(ledig)", palName(p.p), p.z, p.x, p.y, posTxt(p), "", "", ""]; };
+  const bySlot = new Map(S.scans.filter(r => r.slot != null).map(r => [r.slot, r]));
+  const pals = [];
+  if (has) for (let k = 1; k <= nPall(); k++) {
+    if (!okP(k)) continue; const o = (k - 1) * STRIDE, rs = [];
+    if (empty) { for (let s = o; s < o + capOf(k); s++) if (okZ(pos(s).z)) rs.push(row(bySlot.get(s), s)); }
+    else [...bySlot.keys()].filter(s => pallOf(s) === k && okZ(pos(s).z)).sort((a, b) => a - b).forEach(s => rs.push(row(bySlot.get(s), s)));
+    pals.push({ k, rs });
+  }
+  const un = (!has || okP(0)) && okZ(0) ? S.scans.filter(r => r.slot == null).sort((p, q) => new Date(p.scanned_at) - new Date(q.scanned_at)).map(r => [String(r.serial), "", "", "", "", "", fmt(r.scanned_at), r.scanned_by || "", r.method || ""]) : [];
+  const num = rs => rs.map((r, i) => [i + 1, ...r]);
+  return { has, pals: pals.map(p => ({ ...p, rs: num(p.rs) })), un: num(un), all: num([...pals.flatMap(p => p.rs), ...un]) };
 }
-const fname = ext => `${S.pname.replace(/[^\w\-åäöÅÄÖ ]/g, "")}${S.planSel.size ? "_plan" + [...S.planSel].sort((a, b) => a - b).map(z => z || "utan").join("-") : ""}_${new Date().toISOString().slice(0, 10)}.${ext}`;
-$("xlsx").onclick = () => { const ws = XLSX.utils.aoa_to_sheet(rows()); ws["!cols"] = [{ wch: 6 }, { wch: 22 }, { wch: 18 }, { wch: 20 }, { wch: 16 }, { wch: 14 }]; const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Lås"); XLSX.writeFile(wb, fname("xlsx")); };
+const fname = ext => {
+  const pt = S.palSel.size ? "_" + [...S.palSel].sort((a, b) => a - b).map(k => k ? palName(k) : "utan-plats").join("-") : "", zt = S.planSel.size ? "_plan" + [...S.planSel].sort((a, b) => a - b).map(z => z || "utan").join("-") : "";
+  return `${(S.pname + pt + zt).replace(/[^\w\-åäöÅÄÖ ]/g, "").replace(/\s+/g, " ").trim()}_${new Date().toISOString().slice(0, 10)}.${ext}`;
+};
+const COLS = [{ wch: 5 }, { wch: 18 }, { wch: 14 }, { wch: 6 }, { wch: 5 }, { wch: 5 }, { wch: 24 }, { wch: 19 }, { wch: 14 }, { wch: 12 }];
+$("xlsx").onclick = () => {
+  const d = exportData(), wb = XLSX.utils.book_new(), used = new Set();
+  const sheet = (name, aoa, cols) => { // fliknamn: max 31 tecken, unika, utan []:*?/\
+    let n = String(name).replace(/[\[\]:*?\/\\]/g, "-").slice(0, 31) || "Blad", i = 2; while (used.has(n.toLowerCase())) n = `${String(name).slice(0, 27)} (${i++})`; used.add(n.toLowerCase());
+    const ws = XLSX.utils.aoa_to_sheet(aoa); ws["!cols"] = cols; XLSX.utils.book_append_sheet(wb, ws, n);
+  };
+  if (!d.has) { sheet("Lås", [["Nr", "Serienummer", "Datum och tid", "Skannad av", "Metod"], ...d.un.map(r => [r[0], r[1], r[7], r[8], r[9]])], [{ wch: 5 }, { wch: 18 }, { wch: 19 }, { wch: 14 }, { wch: 12 }]); return XLSX.writeFile(wb, fname("xlsx")); }
+  const ov = [["Pall", "Storlek (X × Y × våningar)", "Lås", "Platser", "Lediga", "Fyllnad"]];
+  d.pals.forEach(p => { const n = S.scans.filter(r => r.slot != null && pallOf(r.slot) === p.k).length, c = capOf(p.k), a = palAt(p.k); ov.push([palName(p.k), `${a.x} × ${a.y} × ${a.z}`, n, c, c - n, `${Math.round(n / c * 100)} %`]); });
+  if (d.un.length) ov.push(["Utan plats", "", d.un.length, "", "", ""]);
+  sheet("Översikt", ov, [{ wch: 18 }, { wch: 24 }, { wch: 6 }, { wch: 8 }, { wch: 8 }, { wch: 9 }]);
+  if (d.pals.length + (d.un.length ? 1 : 0) > 1) sheet("Alla lås", [HEAD, ...d.all], COLS);
+  d.pals.forEach(p => sheet(palName(p.k), [HEAD, ...p.rs], COLS));
+  if (d.un.length) sheet("Utan plats", [HEAD, ...d.un], COLS);
+  XLSX.writeFile(wb, fname("xlsx"));
+};
 $("csv").onclick = () => {
-  const q = v => { v = String(v); return /[;"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v; };
-  const csv = "\ufeff" + rows().map(r => r.map(q).join(";")).join("\r\n"); // semikolon = svensk Excel delar upp i kolumner
+  const d = exportData(), q = v => { v = String(v); return /[;"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v; };
+  const aoa = d.has ? [HEAD, ...d.all] : [["Nr", "Serienummer", "Datum och tid", "Skannad av", "Metod"], ...d.un.map(r => [r[0], r[1], r[7], r[8], r[9]])];
+  const csv = "﻿" + aoa.map(r => r.map(q).join(";")).join("\r\n"); // semikolon = svensk Excel delar upp i kolumner; Google Kalkylark känner av det
   const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" })); a.download = fname("csv"); a.click();
 };
 
@@ -1435,9 +1493,28 @@ $("palmsg").onclick = e => {
   else { S.hit = null; S.hitCell = g.dataset.cell; renderPall(); }
 };
 
+// ---------- Alla pallar: översiktskarta. Tryck på en pall för att visa den ----------
+function renderMap() {
+  const box = $("palmap"), card = $("mapcard"); card.classList.toggle("hide", !S.pals.length); if (!S.pals.length) return;
+  const n = nPall(), cnt = {}; S.scans.forEach(r => { if (r.slot == null) return; const p = pos(r.slot), k = `${p.p}|${p.z}`; cnt[k] = (cnt[k] || 0) + 1; cnt[p.p] = (cnt[p.p] || 0) + 1; });
+  box.innerHTML = "";
+  for (let k = 1; k <= n; k++) {
+    const d = palAt(k), cap = capOf(k), c = cnt[k] || 0, per = d.x * d.y, t = document.createElement("button");
+    t.className = "ptile" + (k === (S.pall || 0) + 1 ? " cur" : "") + (c >= cap ? " full" : ""); t.setAttribute("aria-label", `Visa ${palName(k)}: ${c} av ${cap} lås`);
+    let bars = ""; const zs = d.z <= 8 ? Array.from({ length: d.z }, (_, i) => d.z - i) : null; // högsta planet överst, som pallen står
+    if (zs) zs.forEach(z => { const f = (cnt[`${k}|${z}`] || 0) / per; bars += `<div class="pbar" title="Plan ${z}: ${cnt[`${k}|${z}`] || 0} av ${per}"><span style="width:${(f * 100).toFixed(1)}%"></span></div>`; });
+    else bars = `<div class="pbar"><span style="width:${(c / cap * 100).toFixed(1)}%"></span></div>`;
+    t.innerHTML = `<div class="pth"><b></b>${k === (S.act || 1) ? '<span class="badge on">Skannas hit</span>' : ""}</div><div class="pstack">${bars}</div><div class="mut"><span class="pc"></span> · ${d.x}×${d.y}×${d.z}</div>`;
+    t.querySelector("b").textContent = palName(k); t.querySelector(".pc").textContent = c >= cap ? `Full (${cap})` : `${c} av ${cap}`;
+    t.onclick = () => { S.pall = k - 1; S.hit = null; S.hitCell = null; S.floor = 0; $("q").value = ""; $("qres").innerHTML = ""; $("qinfo").textContent = ""; renderPall(); $("pallnav").closest(".card").scrollIntoView({ behavior: "smooth", block: "start" }); };
+    box.appendChild(t);
+  }
+  const add = document.createElement("button"); add.className = "ptile add"; add.innerHTML = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Ny pall</span>'; add.onclick = () => newPal(); box.appendChild(add);
+  const un = S.scans.filter(r => r.slot == null).length; $("mapinfo").textContent = (un ? `${un} lås saknar plats. ` : "") + "Staplarna visar hur fulla planen är, högsta planet överst. Tryck på en pall för att visa den.";
+}
 // ----- huvudfunktion -----
 function renderPall() {
-  renderPalForm();
+  renderPalForm(); renderMap();
   if ($("vPal").classList.contains("hide")) return; // ritas när fliken öppnas
   const box = $("palbox"), msg = $("palmsg");
   if (!S.dims) {
