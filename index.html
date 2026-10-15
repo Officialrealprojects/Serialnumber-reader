@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Inläsning - Smarta Lås (V8)</title>
+<title>Inläsning - Smarta Lås (V9)</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%231f5fbf'/%3E%3Cg fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' transform='translate%284 4%29 scale%28.67%29'%3E%3Crect x='3' y='11' width='18' height='11' rx='2'/%3E%3Cpath d='M7 11V7a5 5 0 0 1 10 0v4'/%3E%3C/g%3E%3C/svg%3E">
 <meta name="theme-color" content="#1f2937">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -573,14 +573,14 @@ function renderPlans() {
   const n = S.scans.filter(r => inPal(r) && (!S.planSel.size || S.planSel.has(planOf(r)))).length;
   const pt = S.palSel.size ? [...S.palSel].sort((a, b) => (a || 1e9) - (b || 1e9)).map(k => k ? palName(k) : "lås utan plats").join(", ") : has ? "alla pallar" : "alla lås";
   const zt = S.planSel.size ? ", " + [...S.planSel].sort((a, b) => (a || 1e9) - (b || 1e9)).map(z => z ? "plan " + z : "utan plats").join(", ") : "";
-  $("planinfo").textContent = `Laddar ner ${pt}${zt}: ${n} lås${$("xempty").checked ? " + lediga platser" : ""}.` + (has ? " Excel får en flik per pall och en översikt; CSV (Google Kalkylark) blir en tabell sorterad pall för pall." : "");
+  $("planinfo").textContent = `Laddar ner ${pt}${zt}: ${n} lås${$("xempty").checked ? " + lediga platser" : ""}.` + (has ? " Första fliken i Excel är hela listan (pall för pall); med flera pallar får varje pall också en egen flik, och sist kommer en översikt. CSV (Google Kalkylark) blir samma lista." : "");
 }
 $("xempty").onchange = () => renderPlans();
-const HEAD = ["Nr", "Serienummer", "Pall", "Plan", "X", "Y", "Plats", "Datum och tid", "Skannad av", "Metod"];
+const HEAD = ["Nr", "Serienummer", "Plats", "Datum och tid", "Skannad av", "Metod", "Pall", "Plan", "X", "Y"]; // samma kolumner som förut först, de nya sist
 function exportData() { // {pallar: [{k, namn, rader}], utan: [rader], alla: [rader]} enligt valen
   const has = S.pals.length > 0, empty = has && $("xempty").checked;
   const okZ = z => !S.planSel.size || S.planSel.has(z), okP = k => !S.palSel.size || S.palSel.has(k);
-  const row = (r, s) => { const p = pos(s); return r ? [String(r.serial), palName(p.p), p.z, p.x, p.y, posTxt(p), fmt(r.scanned_at), r.scanned_by || "", r.method || ""] : ["(ledig)", palName(p.p), p.z, p.x, p.y, posTxt(p), "", "", ""]; };
+  const row = (r, s) => { const p = pos(s); return r ? [String(r.serial), posTxt(p), fmt(r.scanned_at), r.scanned_by || "", r.method || "", palName(p.p), p.z, p.x, p.y] : ["(ledig)", posTxt(p), "", "", "", palName(p.p), p.z, p.x, p.y]; };
   const bySlot = new Map(S.scans.filter(r => r.slot != null).map(r => [r.slot, r]));
   const pals = [];
   if (has) for (let k = 1; k <= nPall(); k++) {
@@ -589,7 +589,7 @@ function exportData() { // {pallar: [{k, namn, rader}], utan: [rader], alla: [ra
     else [...bySlot.keys()].filter(s => pallOf(s) === k && okZ(pos(s).z)).sort((a, b) => a - b).forEach(s => rs.push(row(bySlot.get(s), s)));
     pals.push({ k, rs });
   }
-  const un = (!has || okP(0)) && okZ(0) ? S.scans.filter(r => r.slot == null).sort((p, q) => new Date(p.scanned_at) - new Date(q.scanned_at)).map(r => [String(r.serial), "", "", "", "", "", fmt(r.scanned_at), r.scanned_by || "", r.method || ""]) : [];
+  const un = (!has || okP(0)) && okZ(0) ? S.scans.filter(r => r.slot == null).sort((p, q) => new Date(p.scanned_at) - new Date(q.scanned_at)).map(r => [String(r.serial), "", fmt(r.scanned_at), r.scanned_by || "", r.method || "", "", "", "", ""]) : [];
   const num = rs => rs.map((r, i) => [i + 1, ...r]);
   return { has, pals: pals.map(p => ({ ...p, rs: num(p.rs) })), un: num(un), all: num([...pals.flatMap(p => p.rs), ...un]) };
 }
@@ -597,26 +597,25 @@ const fname = ext => {
   const pt = S.palSel.size ? "_" + [...S.palSel].sort((a, b) => a - b).map(k => k ? palName(k) : "utan-plats").join("-") : "", zt = S.planSel.size ? "_plan" + [...S.planSel].sort((a, b) => a - b).map(z => z || "utan").join("-") : "";
   return `${(S.pname + pt + zt).replace(/[^\w\-åäöÅÄÖ ]/g, "").replace(/\s+/g, " ").trim()}_${new Date().toISOString().slice(0, 10)}.${ext}`;
 };
-const COLS = [{ wch: 5 }, { wch: 18 }, { wch: 14 }, { wch: 6 }, { wch: 5 }, { wch: 5 }, { wch: 24 }, { wch: 19 }, { wch: 14 }, { wch: 12 }];
+const COLS = [{ wch: 5 }, { wch: 18 }, { wch: 24 }, { wch: 19 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 6 }, { wch: 5 }, { wch: 5 }];
 $("xlsx").onclick = () => {
   const d = exportData(), wb = XLSX.utils.book_new(), used = new Set();
   const sheet = (name, aoa, cols) => { // fliknamn: max 31 tecken, unika, utan []:*?/\
     let n = String(name).replace(/[\[\]:*?\/\\]/g, "-").slice(0, 31) || "Blad", i = 2; while (used.has(n.toLowerCase())) n = `${String(name).slice(0, 27)} (${i++})`; used.add(n.toLowerCase());
     const ws = XLSX.utils.aoa_to_sheet(aoa); ws["!cols"] = cols; XLSX.utils.book_append_sheet(wb, ws, n);
   };
-  if (!d.has) { sheet("Lås", [["Nr", "Serienummer", "Datum och tid", "Skannad av", "Metod"], ...d.un.map(r => [r[0], r[1], r[7], r[8], r[9]])], [{ wch: 5 }, { wch: 18 }, { wch: 19 }, { wch: 14 }, { wch: 12 }]); return XLSX.writeFile(wb, fname("xlsx")); }
+  if (!d.has) { sheet("Lås", [HEAD.slice(0, 6), ...d.un.map(r => r.slice(0, 6))], COLS.slice(0, 6)); return XLSX.writeFile(wb, fname("xlsx")); }
   const ov = [["Pall", "Storlek (X × Y × våningar)", "Lås", "Platser", "Lediga", "Fyllnad"]];
   d.pals.forEach(p => { const n = S.scans.filter(r => r.slot != null && pallOf(r.slot) === p.k).length, c = capOf(p.k), a = palAt(p.k); ov.push([palName(p.k), `${a.x} × ${a.y} × ${a.z}`, n, c, c - n, `${Math.round(n / c * 100)} %`]); });
   if (d.un.length) ov.push(["Utan plats", "", d.un.length, "", "", ""]);
-  sheet("Översikt", ov, [{ wch: 18 }, { wch: 24 }, { wch: 6 }, { wch: 8 }, { wch: 8 }, { wch: 9 }]);
-  if (d.pals.length + (d.un.length ? 1 : 0) > 1) sheet("Alla lås", [HEAD, ...d.all], COLS);
-  d.pals.forEach(p => sheet(palName(p.k), [HEAD, ...p.rs], COLS));
-  if (d.un.length) sheet("Utan plats", [HEAD, ...d.un], COLS);
+  sheet("Lås", [HEAD, ...d.all], COLS); // första fliken = hela listan (det som syns när filen öppnas på telefonen eller i Google Kalkylark)
+  if (d.pals.length > 1) { d.pals.forEach(p => sheet(palName(p.k), [HEAD, ...p.rs], COLS)); if (d.un.length) sheet("Utan plats", [HEAD, ...d.un], COLS); } // en flik per pall bara när det finns flera
+  sheet("Översikt", ov, [{ wch: 18 }, { wch: 24 }, { wch: 6 }, { wch: 8 }, { wch: 8 }, { wch: 9 }]); // sist
   XLSX.writeFile(wb, fname("xlsx"));
 };
 $("csv").onclick = () => {
   const d = exportData(), q = v => { v = String(v); return /[;"\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v; };
-  const aoa = d.has ? [HEAD, ...d.all] : [["Nr", "Serienummer", "Datum och tid", "Skannad av", "Metod"], ...d.un.map(r => [r[0], r[1], r[7], r[8], r[9]])];
+  const aoa = d.has ? [HEAD, ...d.all] : [HEAD.slice(0, 6), ...d.un.map(r => r.slice(0, 6))];
   const csv = "﻿" + aoa.map(r => r.map(q).join(";")).join("\r\n"); // semikolon = svensk Excel delar upp i kolumner; Google Kalkylark känner av det
   const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" })); a.download = fname("csv"); a.click();
 };
