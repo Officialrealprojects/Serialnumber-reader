@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Inläsning - Smarta lås</title>
+<title>Inläsning – Smarta Lås</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%231f5fbf'/%3E%3Cg fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' transform='translate%284 4%29 scale%28.67%29'%3E%3Crect x='3' y='11' width='18' height='11' rx='2'/%3E%3Cpath d='M7 11V7a5 5 0 0 1 10 0v4'/%3E%3C/g%3E%3C/svg%3E">
 <meta name="theme-color" content="#1f2937">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -1656,6 +1656,9 @@ function renderPall() {
 const WH0 = () => ({ hw: 20, hd: 12, wh: 4, r: [], lp: [], dr: [] }); // wh = väggarnas höjd, dr = dörrar/portar
 S.wh = WH0(); S.ws = null; S.wview = "2d"; S.wz = 1; S.wpan = [0, 0];
 const EUR = { w: 1.2, d: .8, h: .144 }, KRAGE = .2; // EUR-pall och en pallkrage (höjd)
+const PALS = [["EUR-pall / helpall", 1.2, .8], ["Halvpall", .8, .6], ["Kvartspall", .6, .4], ["Industripall", 1.2, 1]]; // vanliga pallmått (längd, bredd)
+const PW = p => (p && p.s ? p.s[0] : EUR.w), PD = p => (p && p.s ? p.s[1] : EUR.d); // pallens längd och bredd i meter
+const palSizeTxt = p => { const i = PALS.findIndex(q => q[1] === PW(p) && q[2] === PD(p)); return `${i >= 0 ? PALS[i][0] + " " : "Pall "}${mm(PW(p))} × ${mm(PD(p))} mm`; };
 const BOXES = [[.6, .4, .12], [.6, .4, .22], [.6, .4, .32], [.4, .3, .12], [.4, .3, .22], [.3, .2, .12], [.3, .2, .17]]; // vanliga backmått
 const mm = v => Math.round(v * 1000), fm = v => String(Math.round(v * 100) / 100).replace(".", ",");
 const sizeTxt = s => `${mm(s[0])} × ${mm(s[1])} × ${mm(s[2])} mm`;
@@ -1672,9 +1675,10 @@ function parseWh(w) {
   const o = WH0(); if (!w || typeof w !== "object") return o;
   o.hw = num(w.hw, 2, 500, 20); o.hd = num(w.hd, 2, 500, 12);
   const ri = new Set(), li = new Set();
-  o.r = (Array.isArray(w.r) ? w.r : []).filter(r => r && Number.isInteger(r.id) && !ri.has(r.id) && ri.add(r.id)).map(r => ({ id: r.id, n: String(r.n || "Hylla").slice(0, 40), k: ["p", "w", "c"].includes(r.k) ? r.k : "h", b: num(r.b, 0, 10, .6), f: num(r.f, .1, 5, .4), ...(r.fx === false ? { fx: false } : {}), x: num(r.x, 0, 500, 1), y: num(r.y, 0, 500, 1), a: [0, 90, 180, 270].includes(r.a) ? r.a : 0, L: num(r.L, .3, 50, 2), D: num(r.D, .2, 5, .6), lv: Math.round(num(r.lv, 1, 20, 4)), h: num(r.h, .1, 5, .4), pb: Math.round(num(r.pb, 0, 5, 0)), ph: num(r.ph, .5, 5, 1.4) })).map(r => ({ ...r, pb: r.k === "h" ? Math.min(r.pb, r.lv - 1) : 0 }));
+  o.r = (Array.isArray(w.r) ? w.r : []).filter(r => r && Number.isInteger(r.id) && !ri.has(r.id) && ri.add(r.id)).map(r => ({ id: r.id, n: String(r.n || "Hylla").slice(0, 40), k: ["p", "w", "c"].includes(r.k) ? r.k : "h", b: num(r.b, 0, 10, .6), f: num(r.f, .1, 5, .4), ...(r.fx === false ? { fx: false } : {}), x: num(r.x, 0, 500, 1), y: num(r.y, 0, 500, 1), a: [0, 90, 180, 270].includes(r.a) ? r.a : 0, L: num(r.L, .3, 50, 2), D: num(r.D, .2, 5, .6), lv: Math.round(num(r.lv, 1, 20, 4)), h: num(r.h, .1, 5, .4), pb: Math.round(num(r.pb, 0, 5, 0)), ph: num(r.ph, .5, 5, 1.4), ...(num(r.H, 0, 30, 0) > 0 ? { H: num(r.H, 0, 30, 0) } : {}),
+    ...(Array.isArray(r.zs) && r.zs.length === Math.round(num(r.lv, 1, 20, 4)) && r.zs.every((z, i, a) => isFinite(+z) && (!i || +z > +a[i - 1])) ? { zs: r.zs.map(z => num(z, 0, 30, 0)) } : {}) })).map(r => ({ ...r, pb: r.k === "h" ? Math.min(r.pb, r.lv - 1) : 0 }));
   o.lp = (Array.isArray(w.lp) ? w.lp : []).filter(p => p && Number.isInteger(p.id) && !li.has(p.id) && li.add(p.id)).map(p => {
-    const l = p.loc || {}; return { id: p.id, n: String(p.n || "Pall").slice(0, 40), kr: Math.round(num(p.kr, 0, 10, 0)), o: +p.o || 0,
+    const l = p.loc || {}; return { id: p.id, n: String(p.n || "Pall").slice(0, 40), kr: Math.round(num(p.kr, 0, 10, 0)), o: +p.o || 0, ...(Array.isArray(p.s) && p.s.length === 2 ? { s: [num(p.s[0], .2, 5, 1.2), num(p.s[1], .2, 5, .8)] } : {}),
       loc: l.k === "r" ? { k: "r", r: +l.r, l: Math.max(0, Math.round(+l.l || 0)) } : { k: "f", x: num(l.x, 0, 500, 1), y: num(l.y, 0, 500, 1), a: l.a === 90 ? 90 : 0 } }; });
   o.wh = num(w.wh, .5, 30, 4); const di = new Set();
   o.dr = (Array.isArray(w.dr) ? w.dr : []).filter(d => d && Number.isInteger(d.id) && !di.has(d.id) && di.add(d.id)).map(d => ({ id: d.id, n: String(d.n || "Dörr").slice(0, 40), s: SIDES[d.s] ? d.s : "t", p: num(d.p, 0, 500, 1), w: num(d.w, .5, 30, 1), h: num(d.h, .5, 30, 2.1) }));
@@ -1716,14 +1720,17 @@ const kOf = id => S.pals.findIndex(d => d.id === id) + 1; // backens nummer i li
 // Hyllställ kan ha pallplatser längst ner (pb st, höjd ph) med hyllplan ovanför; pallställ har bara pallplan
 const pbOf = r => r.k === "h" ? r.pb || 0 : 0; // väggplan (w) har bara hyllplan, från höjden b
 const palLv = (r, l) => r.k === "p" || l < pbOf(r); // planet är en pallplats (golv eller bom), inte ett hyllplan
-const levelZ = (r, l) => { if (r.k === "p") return l * r.h; if (r.k === "w") return (r.b ?? .6) + l * r.h; const pb = pbOf(r), ph = r.ph || 1.4; return l < pb ? l * ph : (pb ? pb * ph : .08) + (l - pb) * r.h; }; // överkant på hyllplanet/bommen
+const hasZ = r => Array.isArray(r.zs) && r.zs.length === r.lv; // egen höjd per plan (sätts när ett plan flyttas eller tas bort)
+const levelZ = (r, l) => { if (hasZ(r)) return r.zs[l]; if (r.k === "p") return l * r.h; if (r.k === "w") return (r.b ?? .6) + l * r.h; const pb = pbOf(r), ph = r.ph || 1.4; return l < pb ? l * ph : (pb ? pb * ph : .08) + (l - pb) * r.h; }; // överkant på hyllplanet/bommen
 const lvH = (r, l) => l < r.lv - 1 ? levelZ(r, l + 1) - levelZ(r, l) - .04 : Math.max(palLv(r, l) ? r.ph || r.h : r.h, .6); // fri höjd på planet
-const rackTop = r => levelZ(r, r.lv - 1) + (palLv(r, r.lv - 1) ? .35 : .05);
+const rackTop = r => Math.max(r.H || 0, levelZ(r, r.lv - 1) + (palLv(r, r.lv - 1) ? .35 : .05)); // stolparnas höjd: vald höjd, annars strax över översta planet
+function matZ(r) { if (!hasZ(r)) { delete r.zs; r.zs = Array.from({ length: r.lv }, (_, l) => Math.round(levelZ(r, l) * 1000) / 1000); } return r.zs; } // gör planens höjder fasta innan de ändras var för sig
+const rackItems = id => [...S.pals.filter(x => x.loc && x.loc.k === "r" && x.loc.r === id).map(x => x.loc), ...S.wh.lp.filter(p => p.loc.k === "r" && p.loc.r === id).map(p => p.loc)];
 const lvName = (r, l) => palLv(r, l) ? (r.k === "h" ? "pallplats" : l ? "bom" : "golv") : "hyllplan";
 const bays = r => r.k === "p" ? Math.max(1, Math.round(r.L / 2.7)) : 1; // hyllställ: bara fyra hörnstolpar, inget i mitten
 function rot(cx, cy, a, u, v) { const t = a * Math.PI / 180, c = Math.cos(t), s = Math.sin(t); return [cx + u * c - v * s, cy + u * s + v * c]; }
 const rackFp = r => { const q = r.a % 180, w = q ? r.D : r.L, h = q ? r.L : r.D; return { x: r.x - w / 2, y: r.y - h / 2, w, h }; };
-const lpFp = p => { const q = p.loc.a % 180, w = q ? EUR.d : EUR.w, h = q ? EUR.w : EUR.d; return { x: p.loc.x - w / 2, y: p.loc.y - h / 2, w, h }; };
+const lpFp = p => { const q = p.loc.a % 180, w = q ? PD(p) : PW(p), h = q ? PW(p) : PD(p); return { x: p.loc.x - w / 2, y: p.loc.y - h / 2, w, h }; };
 const hitFp = (a, b) => a.x < b.x + b.w - 1e-3 && b.x < a.x + a.w - 1e-3 && a.y < b.y + b.h - 1e-3 && b.y < a.y + a.h - 1e-3;
 const insideFp = f => f.x >= -1e-3 && f.y >= -1e-3 && f.x + f.w <= S.wh.hw + 1e-3 && f.y + f.h <= S.wh.hd + 1e-3;
 function floorFps(skip) { return [...S.wh.r.filter(r => r !== skip).map(rackFp), ...S.wh.lp.filter(p => p !== skip && p.loc.k === "f").map(lpFp)]; }
@@ -1744,7 +1751,7 @@ function packIn(items, L, D, H) { // ställ ut i ordning: längs bredden, sedan 
 const boxS = d => Array.isArray(d.s) ? d.s : [.6, .4, .22];
 function whLayout() { // var allt står: {box: k -> {x,y,z,w,d,h,a,over}, lp: id -> {x,y,z,a,over,n}, lvl: "rack:plan" -> {n, over}}
   const out = { box: new Map(), lp: new Map(), lvl: new Map() }, G = new Map(), put = (key, it) => { if (!G.has(key)) G.set(key, []); G.get(key).push(it); };
-  S.wh.lp.forEach(p => { if (p.loc.k === "r") put(`r:${p.loc.r}:${p.loc.l}`, { t: "lp", ref: p.id, w: EUR.d + .1, d: EUR.w - .12, h: EUR.h + p.kr * KRAGE, o: p.o || 0 }); });
+  S.wh.lp.forEach(p => { if (p.loc.k === "r") put(`r:${p.loc.r}:${p.loc.l}`, { t: "lp", ref: p.id, w: PD(p) + .1, d: Math.max(PD(p), PW(p) - .12), h: EUR.h + p.kr * KRAGE, o: p.o || 0 }); });
   S.pals.forEach((d, i) => { const l = d.loc; if (!l) return; const s = boxS(d), it = { t: "b", ref: i + 1, w: s[0], d: s[1], h: s[2], o: d.o || 0 }; put(l.k === "r" ? `r:${l.r}:${l.l}` : `p:${l.p}`, it); });
   const srt = a => a.sort((p, q) => p.o - q.o || (p.t === "lp" ? -1 : 1) || p.ref - q.ref);
   S.wh.r.forEach(r => { for (let l = 0; l < r.lv; l++) {
@@ -1754,9 +1761,9 @@ function whLayout() { // var allt står: {box: k -> {x,y,z,w,d,h,a,over}, lp: id
       if (q.t === "lp") out.lp.set(q.ref, { x, y, z: z0 + q.z, a: r.a + 90, over: q.over }); else out.box.set(q.ref, { x, y, z: z0 + q.z, w: q.turned ? q.d : q.w, d: q.turned ? q.w : q.d, h: q.h, a: r.a + (q.turned ? 90 : 0), over: q.over }); });
   } });
   S.wh.lp.forEach(p => { if (p.loc.k === "f") out.lp.set(p.id, { x: p.loc.x, y: p.loc.y, z: 0, a: p.loc.a, over: !insideFp(lpFp(p)) }); });
-  S.wh.lp.forEach(p => { const P = out.lp.get(p.id); if (!P) return; const its = srt(G.get(`p:${p.id}`) || []), pk = packIn(its, EUR.w, EUR.d, p.kr ? p.kr * KRAGE + .02 : 1.2);
+  S.wh.lp.forEach(p => { const P = out.lp.get(p.id); if (!P) return; const its = srt(G.get(`p:${p.id}`) || []), pk = packIn(its, PW(p), PD(p), p.kr ? p.kr * KRAGE + .02 : 1.2);
     P.n = its.length; P.bover = pk.some(q => q.over);
-    pk.forEach(q => { const [x, y] = rot(P.x, P.y, P.a, -EUR.w / 2 + q.u + q.w / 2, -EUR.d / 2 + q.v + q.d / 2); out.box.set(q.ref, { x, y, z: P.z + EUR.h + q.z, w: q.w, d: q.d, h: q.h, a: P.a, over: q.over }); }); });
+    pk.forEach(q => { const [x, y] = rot(P.x, P.y, P.a, -PW(p) / 2 + q.u + q.w / 2, -PD(p) / 2 + q.v + q.d / 2); out.box.set(q.ref, { x, y, z: P.z + EUR.h + q.z, w: q.w, d: q.d, h: q.h, a: P.a, over: q.over }); }); });
   return out;
 }
 function boxWhere(k) { // "Hylla A, plan 2" / "Pall 3 på Pallställ A, plan 1" / "Pall 3"
@@ -1805,8 +1812,9 @@ async function addDoor() {
 }
 async function addLp(loc) {
   const id = S.wh.lp.reduce((m, x) => Math.max(m, x.id + 1), 0), n = nameFree("Pall", [...S.wh.lp, ...S.pals]);
-  if (!loc) { const [x, y] = findSpot(EUR.w, EUR.d); loc = { k: "f", x, y, a: 0 }; }
-  S.wh.lp.push({ id, n, kr: 2, o: loc.k === "r" ? maxO(loc) : 0, loc }); S.ws = { k: "lp", id }; if (await whSave()) toast(`${n} tillagd`, 2500);
+  const prev = S.wh.lp[S.wh.lp.length - 1], s = prev && prev.s ? prev.s.slice() : null; // samma storlek som den senast tillagda pallen
+  if (!loc) { const [x, y] = findSpot(s ? s[0] : EUR.w, s ? s[1] : EUR.d); loc = { k: "f", x, y, a: 0 }; }
+  S.wh.lp.push({ id, n, kr: 2, ...(s ? { s } : {}), o: loc.k === "r" ? maxO(loc) : 0, loc }); S.ws = { k: "lp", id }; if (await whSave()) toast(`${n} tillagd`, 2500);
 }
 function nextBoxName(loc) { // förslag: fortsätt serien på samma hylla/pall (A3 -> A4), annars nästa lediga "Back N"
   const names = new Set(S.pals.map(d => d.n.toLowerCase())), sb = loc ? sibs(loc).sort((a, b) => (b.d.o || 0) - (a.d.o || 0)) : [];
@@ -1857,7 +1865,7 @@ function renderPlan() {
     for (let b = 1; b < nb; b++) { const u = -r.L / 2 + r.L * b / nb; h += `<line x1="${u}" y1="${-r.D / 2}" x2="${u}" y2="${r.D / 2}" class="wb"/>`; }
     h += `</g></g>`; });
   S.wh.lp.forEach(p => { const P = lay.lp.get(p.id); if (!P) return; const fl = p.loc.k === "f", cls = `wp${isSel("lp", p.id) ? " s" : ""}${(fl && bad(p, lpFp(p))) || P.over ? " bad" : ""}`;
-    h += `<g data-k="lp" data-id="${p.id}"><rect x="${P.x - EUR.w / 2}" y="${P.y - EUR.d / 2}" width="${EUR.w}" height="${EUR.d}" transform="rotate(${P.a} ${P.x} ${P.y})" class="${cls}" fill-opacity="${P.n ? .55 : 1}"/></g>`; });
+    h += `<g data-k="lp" data-id="${p.id}"><rect x="${P.x - PW(p) / 2}" y="${P.y - PD(p) / 2}" width="${PW(p)}" height="${PD(p)}" transform="rotate(${P.a} ${P.x} ${P.y})" class="${cls}" fill-opacity="${P.n ? .55 : 1}"/>${P.n ? "" : (() => { const nb = Math.max(3, Math.round(PD(p) / .16)), bw = PD(p) / nb * .72; let t = ""; for (let i = 1; i < nb; i++) { const v = P.y - PD(p) / 2 + bw + (i - 1) * (PD(p) - bw) / (nb - 1) + ((PD(p) - bw) / (nb - 1) - bw) / 2; t += `<line x1="${P.x - PW(p) / 2}" y1="${v}" x2="${P.x + PW(p) / 2}" y2="${v}" transform="rotate(${P.a} ${P.x} ${P.y})" class="wb" style="stroke:#8a6233"/>`; } return t; })()}</g>`; });
   S.wh.dr.forEach(d => { const [x, y] = doorPt(d), hz = d.s === "t" || d.s === "b", T = .3;
     h += `<rect data-k="d" data-id="${d.id}" x="${hz ? x - d.w / 2 : x - T / 2}" y="${hz ? y - T / 2 : y - d.w / 2}" width="${hz ? d.w : T}" height="${hz ? T : d.w}" class="wd${isSel("d", d.id) ? " s" : ""}"/><text x="${x + (d.s === "l" ? .45 : d.s === "r" ? -.45 : 0)}" y="${y + (d.s === "t" ? .4 : d.s === "b" ? -.4 : 0)}" style="font-size:${Math.min(fs * .75, .3)}px">${esc(d.n)}</text>`; });
   lay.box.forEach((B, k) => { const d = S.pals[k - 1], c = cnt[k] || 0;
@@ -1906,7 +1914,7 @@ const keyLoc = s => { const a = String(s).split(":"); return a[0] === "r" ? { k:
 function opts(list, cur) { return list.map(([v, t]) => `<option value="${esc(v)}"${v === cur ? " selected" : ""}>${esc(t)}</option>`).join(""); }
 const rackLevels = pal => S.wh.r.flatMap(r => Array.from({ length: r.lv }, (_, l) => l).filter(l => !pal || palLv(r, l)).map(l => [`r:${r.id}:${l}`, `${r.n}, plan ${l + 1}${palLv(r, l) && r.k === "h" ? " (pallplats)" : ""}`])); // pal = bara pallplatser
 function chipBox(k, cnt) { const d = S.pals[k - 1], B = S.wlay.box.get(k), c = cnt[k] || 0, cap = capOf(k); return `<button class="pl sm${isSel("b", d.id) ? "" : " sec"}" data-b="${d.id}">${B && B.over ? "⚠ " : ""}${esc(d.n)} · ${d.u ? "ny" : `${c}/${cap}`}</button>`; }
-function chipLp(p) { const P = S.wlay.lp.get(p.id); return `<button class="pl sm${isSel("lp", p.id) ? "" : " sec"}" data-p="${p.id}">${P && (P.over || P.bover) ? "⚠ " : ""}${esc(p.n)} · ${p.kr} krag${p.kr === 1 ? "e" : "ar"}</button>`; }
+function chipLp(p) { const P = S.wlay.lp.get(p.id); return `<button class="pl sm${isSel("lp", p.id) ? "" : " sec"}" data-p="${p.id}">${P && (P.over || P.bover) ? "⚠ " : ""}${esc(p.n)}${p.s ? ` · ${mm(PW(p))}×${mm(PD(p))}` : ""} · ${p.kr} krag${p.kr === 1 ? "e" : "ar"}</button>`; }
 function levelItems(r, l, cnt) { const its = []; S.wh.lp.filter(p => p.loc.k === "r" && p.loc.r === r.id && p.loc.l === l).forEach(p => its.push([p.o || 0, chipLp(p) + sibs({ k: "p", p: p.id }).sort((a, b) => (a.d.o || 0) - (b.d.o || 0)).map(b => chipBox(b.k, cnt)).join("")])); sibs({ k: "r", r: r.id, l }).forEach(b => its.push([b.d.o || 0, chipBox(b.k, cnt)])); return its.sort((a, b) => a[0] - b[0]).map(x => x[1]).join(""); }
 function renderSel() {
   const box = $("whsel"), ws = S.ws, ae = document.activeElement;
@@ -1921,14 +1929,18 @@ function renderSel() {
       <div class="row"><label class="mut" style="flex:2">Namn<input type="text" id="ws_n" maxlength="40" value="${esc(r.n)}"></label><label class="mut">Typ<select id="ws_k">${opts([["h", "Hyllställ"], ["p", "Pallställ"], ["w", "Väggplan (utan stolpar)"], ["c", "Hörnhylla (diagonal)"]], r.k)}</select></label></div>
       ${r.k === "c" ? `<div class="row"><label class="mut">Sida längs väggen (m)<input type="text" id="ws_L" inputmode="decimal" value="${fm(r.L)}"></label><label class="mut">Djup vid ändarna (m)<input type="text" id="ws_f" inputmode="decimal" value="${fm(r.f)}"></label></div>
       <label class="mut" style="display:flex;gap:8px;align-items:center;margin:6px 0"><input type="checkbox" id="ws_fx"${r.fx !== false ? " checked" : ""}>Fäst i närmaste hörn (av = placera och vrid fritt)</label>` : `<div class="row"><label class="mut">Längd (m)<input type="text" id="ws_L" inputmode="decimal" value="${fm(r.L)}"></label><label class="mut">Djup (m)<input type="text" id="ws_D" inputmode="decimal" value="${fm(r.D)}"></label></div>`}
-      <div class="row"><label class="mut">${r.k === "h" ? "Antal hyllplan" : "Antal plan"}<input type="text" id="ws_lv" inputmode="numeric" value="${r.lv - pbOf(r)}"></label><label class="mut">Höjd per ${r.k === "h" ? "hyllplan" : "plan"} (m)<input type="text" id="ws_h" inputmode="decimal" value="${fm(r.h)}"></label></div>
+      <div class="row"><label class="mut">${r.k === "h" ? "Antal hyllplan" : "Antal plan"}<input type="text" id="ws_lv" inputmode="numeric" value="${r.lv - pbOf(r)}"></label><label class="mut">Avstånd mellan ${r.k === "p" ? "planen" : "hyllplanen"} (m)<input type="text" id="ws_h" inputmode="decimal" value="${hasZ(r) ? "" : fm(r.h)}" placeholder="${hasZ(r) ? "olika" : ""}"></label></div>
+      ${r.k === "w" ? "" : `<div class="row"><label class="mut">Hyllans höjd (m)<input type="text" id="ws_H" inputmode="decimal" value="${r.H ? fm(r.H) : ""}" placeholder="${fm(rackTop(r))} (automatiskt)"></label><button class="sec fit" id="ws_addlv" style="align-self:flex-end">+ Plan överst</button></div>`}
+      ${r.H && levelZ(r, r.lv - 1) > r.H - .02 ? `<div class="warnx">Översta planet sitter på ${fm(levelZ(r, r.lv - 1))} m – högre än hyllans höjd ${fm(r.H)} m.</div>` : ""}
+      ${hasZ(r) ? `<div class="row"><span class="mut">Planen har egna höjder (ändra i listan nedan).</span><button class="sec fit" id="ws_even">Jämna ut avstånden</button></div>` : ""}
+      ${r.k === "h" && !pbOf(r) && levelZ(r, 0) >= .8 ? `<div class="row"><span class="mut">Det är ${fm(levelZ(r, 0))} m fritt under nedersta hyllplanet.</span><button class="sec fit" id="ws_flp">Pallplats på golvet</button></div>` : ""}
       ${r.k === "w" ? `<div class="row"><label class="mut">Nedersta planets höjd (m)<input type="text" id="ws_b" inputmode="decimal" value="${fm(r.b ?? .6)}"></label></div>` : ""}
-      ${r.k === "h" ? `<div class="row"><label class="mut">Pallplatser längst ner<select id="ws_pb">${opts([0, 1, 2, 3].map(n => [String(n), n ? `${n} (pall${n > 1 ? "ar på varandra" : ""} under hyllan)` : "Inga"]), String(pbOf(r)))}</select></label>${pbOf(r) ? `<label class="mut">Höjd per pallplats (m)<input type="text" id="ws_ph" inputmode="decimal" value="${fm(r.ph || 1.4)}"></label>` : ""}</div>` : ""}
+      ${r.k === "h" && !hasZ(r) ? `<div class="row"><label class="mut">Pallplatser längst ner<select id="ws_pb">${opts([0, 1, 2, 3].map(n => [String(n), n ? `${n} (pall${n > 1 ? "ar på varandra" : ""} under hyllan)` : "Inga"]), String(pbOf(r)))}</select></label>${pbOf(r) ? `<label class="mut">Höjd per pallplats (m)<input type="text" id="ws_ph" inputmode="decimal" value="${fm(r.ph || 1.4)}"></label>` : ""}</div>` : ""}
       <div class="row">${r.k === "w" || (r.k === "c" && r.fx !== false) ? "" : `<button class="sec" id="ws_rot"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>Vrid 90°</button>`}<button class="bad fit" id="ws_del"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>Radera</button></div>
       <div class="row"><button class="sec" id="ws_ser">Namnge backarna i serie</button><button class="sec" id="ws_lbl">Skriv ut etiketter</button></div>
       <div class="mut">${r.k === "c" && r.fx !== false ? `Sitter i hörnet ${["uppe till vänster", "uppe till höger", "nere till höger", "nere till vänster"][r.a / 90]}. Dra den till ett annat hörn för att flytta den.` : r.k === "w" ? `Sitter på ${SIDES[r.s || nearSide(r.x, r.y)].toLowerCase()}, mitten ${fm(r.s === "l" || r.s === "r" ? r.y : r.x)} m från ${r.s === "l" || r.s === "r" ? "övre" : "vänstra"} hörnet. Dra planet längs väggen eller till en annan vägg – det fäster mot närmaste vägg.` : `Står ${fm(r.x)} m från vänster och ${fm(r.y)} m uppifrån (mitten). Dra i planritningen för att flytta.`} ${r.k === "w" ? "" : r.k === "p" ? "Plan 1 är golvet, högre plan är bommar." : pbOf(r) ? `Plan 1${pbOf(r) > 1 ? `–${pbOf(r)}` : ""} är pallplatser (pall på golvet under hyllan), hyllplanen börjar ovanför.` : "Plan 1 är nedersta hyllplanet."}</div>`;
     for (let l = r.lv - 1; l >= 0; l--) { const lv = lay.lvl.get(`${r.id}:${l}`) || { n: 0 };
-      h += `<div class="lvl"><div class="row" style="margin:0"><b class="fit">Plan ${l + 1}</b><span class="mut">${lvName(r, l)} · ${fm(levelZ(r, l))} m upp${lv.over ? ' · <span class="warnx">Får inte plats – gör hyllan längre/djupare eller flytta något</span>' : ""}</span><button class="sec fit" style="padding:6px 10px" data-addb="r:${r.id}:${l}">+ Back</button>${palLv(r, l) ? `<button class="sec fit" style="padding:6px 10px" data-addp="${r.id}:${l}">+ Pall</button>` : ""}${r.k === "h" && l === pbOf(r) && l < r.lv - 1 && l < 3 ? `<button class="sec fit" style="padding:6px 10px" data-cv="${r.id}:1">Gör om till pallplats</button>` : ""}${r.k === "h" && l === pbOf(r) - 1 ? `<button class="sec fit" style="padding:6px 10px" data-cv="${r.id}:-1">Gör om till hyllplan</button>` : ""}</div><div class="chips">${levelItems(r, l, cnt) || '<span class="mut">Tomt</span>'}</div></div>`; }
+      h += `<div class="lvl"><div class="row" style="margin:0"><b class="fit">Plan ${l + 1}</b><span class="mut">${lvName(r, l)} på <input type="text" id="ws_z${l}" data-lz="${l}" inputmode="decimal" value="${fm(levelZ(r, l))}" aria-label="Höjd för plan ${l + 1} i meter" style="width:64px;padding:4px 6px;display:inline-block"> m${lv.over ? ' · <span class="warnx">Får inte plats – gör hyllan längre/djupare eller flytta något</span>' : ""}</span><button class="sec fit" style="padding:6px 10px" data-addb="r:${r.id}:${l}">+ Back</button>${palLv(r, l) ? `<button class="sec fit" style="padding:6px 10px" data-addp="${r.id}:${l}">+ Pall</button>` : ""}${r.k === "h" && l === pbOf(r) && l < r.lv - 1 && l < 3 ? `<button class="sec fit" style="padding:6px 10px" data-cv="${r.id}:1">Gör om till pallplats</button>` : ""}${r.k === "h" && l === pbOf(r) - 1 ? `<button class="sec fit" style="padding:6px 10px" data-cv="${r.id}:-1">Gör om till hyllplan</button>` : ""}${r.lv > 1 ? `<button class="sec fit" style="padding:6px 10px;color:var(--bad)" data-dl="${r.id}:${l}" aria-label="Ta bort plan ${l + 1}">Ta bort</button>` : ""}</div><div class="chips">${levelItems(r, l, cnt) || '<span class="mut">Tomt</span>'}</div></div>`; }
   } else if (ws.k === "d") {
     const d = o, L = sideLen(d.s);
     h = `<h4>${esc(d.n)} <span class="mut">${SIDES[d.s]}</span></h4>
@@ -1938,7 +1950,8 @@ function renderSel() {
       <div class="mut">Mitten mäts från ${d.s === "l" || d.s === "r" ? "övre" : "vänstra"} hörnet (väggen är ${fm(L)} m). Dra dörren i planritningen för att flytta den längs väggen eller till en annan vägg.</div>`;
   } else if (ws.k === "lp") {
     const p = o, P = S.wlay.lp.get(p.id) || {}, onB = sibs({ k: "p", p: p.id }).sort((a, b) => (a.d.o || 0) - (b.d.o || 0));
-    h = `<h4>${esc(p.n)} <span class="mut">EUR-pall 1200 × 800 mm · ${esc(lpWhere(p))}</span></h4>
+    h = `<h4>${esc(p.n)} <span class="mut">${esc(palSizeTxt(p))} · ${esc(lpWhere(p))}</span></h4>
+      <div class="row"><label class="mut">Storlek<select id="ws_ps">${(() => { const i = PALS.findIndex(q => q[1] === PW(p) && q[2] === PD(p)); return opts([...PALS.map((q, j) => [String(j), `${q[0]} ${mm(q[1])} × ${mm(q[2])} mm`]), ...(i < 0 ? [["x", palSizeTxt(p)]] : []), ["c", "Egna mått…"]], i < 0 ? "x" : String(i)); })()}</select></label></div>
       <div class="row"><label class="mut" style="flex:2">Namn<input type="text" id="ws_n" maxlength="40" value="${esc(p.n)}"></label><label class="mut">Plats<select id="ws_at">${opts([["f", "På golvet"], ...rackLevels(true), ...(p.loc.k === "r" && !rackLevels(true).some(x => x[0] === lkey(p.loc)) ? [[lkey(p.loc), lpWhere(p)]] : [])], lkey(p.loc))}</select></label></div>
       <div class="row"><span class="fit mut">Pallkragar</span><button class="sec fit" id="ws_km" aria-label="En krage mindre">−</button><b class="fit" style="min-width:24px;text-align:center">${p.kr}</b><button class="sec fit" id="ws_kp" aria-label="En krage till">+</button><span class="mut">${p.kr ? `${mm(p.kr * KRAGE)} mm innerhöjd` : "inga kragar"}</span></div>
       <div class="row">${p.loc.k === "f" ? `<button class="sec" id="ws_rot"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>Vrid 90°</button>` : ""}<button class="sec" data-addb="p:${p.id}">+ Back på pallen</button><button class="sec" id="ws_ser">Namnge i serie</button><button class="sec" id="ws_lbl">Etiketter</button><button class="bad fit" id="ws_del"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>Radera</button></div>
@@ -1983,14 +1996,23 @@ function bindSel(ws, o) {
   if (ws.k === "r") {
     const set = async (f, a, b, d) => { const v = num($("ws_" + f).value, a, b, null); if (v == null) return renderSel(); const old = o[f]; o[f] = f === "lv" ? Math.round(v) + pbOf(o) : v;
       if (f === "lv" && o.lv < old) { const busy = [...S.pals.filter(x => x.loc && x.loc.k === "r" && x.loc.r === o.id && x.loc.l >= o.lv), ...S.wh.lp.filter(p => p.loc.k === "r" && p.loc.r === o.id && p.loc.l >= o.lv)]; if (busy.length) { o.lv = old; toast(`Det står ${busy.length} sak(er) på de översta planen – flytta dem först`, 4000); return renderSel(); } }
+      if (f === "lv" && hasZ(o) === false && Array.isArray(o.zs)) { const z = o.zs; while (z.length < o.lv) z.push(z[z.length - 1] + o.h); z.length = o.lv; } // egna höjder: lägg till/ta bort överst
+      if (f === "h" && Array.isArray(o.zs)) { delete o.zs; toast("Alla plan har nu samma avstånd", 2500); }
       await whSave(); };
+    on("ws_H", "onchange", async () => { const t = $("ws_H").value.trim(); if (!t) delete o.H; else { const v = num(t, .3, 30, null); if (v == null) return renderSel(); o.H = v; } await whSave(); });
+    on("ws_even", "onchange", null); on("ws_even", "onclick", async () => { delete o.zs; await whSave(); toast("Planen har nu samma avstånd", 2500); });
+    on("ws_addlv", "onclick", async () => { if (o.lv >= 20) return toast("Högst 20 plan", 2500); if (hasZ(o)) o.zs.push(Math.round((o.zs[o.lv - 1] + o.h) * 1000) / 1000); o.lv++; await whSave(); toast(`Plan ${o.lv} tillagt överst`, 2000); });
+    on("ws_flp", "onclick", async () => { if (o.lv >= 20) return toast("Högst 20 plan", 2500); matZ(o); o.zs.unshift(0); rackItems(o.id).forEach(l => l.l++); o.lv++; o.pb = 1; if (!o.ph) o.ph = 1.4; await whSave(); toast("Pallplats på golvet tillagd – tryck + Pall på plan 1", 3500); });
+    document.querySelectorAll("#whsel [data-lz]").forEach(inp => inp.onchange = async () => { const l = +inp.dataset.lz, v = num(inp.value, 0, 30, null); if (v == null) return renderSel();
+      const z = matZ(o), lo = l ? z[l - 1] + .05 : 0, hi = l < o.lv - 1 ? z[l + 1] - .05 : 30; if (v < lo || v > hi) { toast(`Plan ${l + 1} måste ligga mellan ${fm(lo)} och ${fm(hi)} m (mellan planen under och över)`, 4000); return renderSel(); }
+      z[l] = Math.round(v * 1000) / 1000; await whSave(); });
     on("ws_L", "onchange", () => set("L", .3, 50)); on("ws_D", "onchange", () => set("D", .2, 5)); on("ws_lv", "onchange", () => set("lv", 1, 20)); on("ws_h", "onchange", () => set("h", .1, 5)); on("ws_ph", "onchange", () => set("ph", .5, 5)); on("ws_b", "onchange", () => set("b", 0, 10)); on("ws_f", "onchange", () => set("f", .1, 5));
     on("ws_fx", "onchange", async () => { if ($("ws_fx").checked) delete o.fx; else o.fx = false; await whSave(); });
     on("ws_pb", "onchange", async () => { // pallplatser längst ner: hyllplanen och det som står på dem flyttas upp/ner lika många plan
       const nb = +$("ws_pb").value, d = nb - pbOf(o); if (!d) return;
       const its = [...S.pals.filter(x => x.loc && x.loc.k === "r" && x.loc.r === o.id).map(x => x.loc), ...S.wh.lp.filter(p => p.loc.k === "r" && p.loc.r === o.id).map(p => p.loc)];
       if (d < 0 && its.some(l => l.l < -d)) { toast("Det står något på pallplatserna som tas bort – flytta det först", 4000); return renderSel(); }
-      if (o.lv + d > 20) { toast("Högst 20 plan totalt", 3000); return renderSel(); }
+      if (o.lv + d > 20) { toast("Högst 20 plan totalt", 3000); return renderSel(); } delete o.zs;
       its.forEach(l => l.l += d); o.lv += d; o.pb = nb; if (nb && !o.ph) o.ph = 1.4; await whSave(); });
     on("ws_k", "onchange", async () => { o.k = $("ws_k").value; if (o.k !== "h") o.pb = 0; if (o.k === "w") { if (o.D > .8) o.D = .4; if (o.b == null) o.b = .6; } if (o.k === "c") { if (o.L > 2) o.L = .9; o.D = o.L; o.f = Math.min(o.f || .4, o.L); } if (o.k === "p" && o.h < 1) { o.h = 1.6; o.D = Math.max(o.D, 1.1); o.L = Math.max(o.L, 2.7); o.lv = Math.min(o.lv, Math.max(3, ...S.pals.filter(x => x.loc && x.loc.k === "r" && x.loc.r === o.id).map(x => x.loc.l + 1))); } await whSave(); });
     on("ws_rot", "onclick", async () => { o.a = (o.a + 90) % 360; const f = rackFp(o); o.x = clamp(o.x, f.w / 2, Math.max(f.w / 2, S.wh.hw - f.w / 2)); o.y = clamp(o.y, f.h / 2, Math.max(f.h / 2, S.wh.hd - f.h / 2)); await whSave(); });
@@ -2002,9 +2024,15 @@ function bindSel(ws, o) {
     on("ws_del", "onclick", async () => { if (!(await dialog({ err: 1, title: `Radera ${o.n}?`, text: `${o.n} tas bort från väggen för alla i projektet.`, yes: `Radera ${o.n}` }))) return; S.wh.dr = S.wh.dr.filter(x => x !== o); S.ws = null; await whSave(); });
   } else if (ws.k === "lp") {
     const kr = async d => { o.kr = clamp(o.kr + d, 0, 10); await whSave(); };
+    on("ws_ps", "onchange", async () => { const v = $("ws_ps").value; if (v === "x") return; let sz;
+      if (v === "c") { const t = await dialog({ title: "Pallens mått", text: "Längd × bredd i millimeter, t.ex. 1200 × 800.", yes: "Spara", value: `${mm(PW(o))} × ${mm(PD(o))}` }); const n = t ? (t.match(/\d+/g) || []).map(Number) : []; if (n.length !== 2 || n.some(x => x < 200 || x > 5000)) { if (t != null) toast("Skriv två mått i mm (200–5000)", 3000); return renderSel(); } sz = n.map(x => x / 1000); }
+      else sz = PALS[+v].slice(1);
+      if (sz[0] === EUR.w && sz[1] === EUR.d) delete o.s; else o.s = sz;
+      if (o.loc.k === "f") { const f = lpFp(o); o.loc.x = clamp(o.loc.x, f.w / 2, Math.max(f.w / 2, S.wh.hw - f.w / 2)); o.loc.y = clamp(o.loc.y, f.h / 2, Math.max(f.h / 2, S.wh.hd - f.h / 2)); }
+      await whSave(); toast(`${o.n}: ${palSizeTxt(o)}`, 2500); });
     on("ws_km", "onclick", () => kr(-1)); on("ws_kp", "onclick", () => kr(1));
     on("ws_rot", "onclick", async () => { o.loc.a = o.loc.a ? 0 : 90; await whSave(); });
-    on("ws_at", "onchange", async () => { const v = $("ws_at").value; if (v === "f") { const [x, y] = findSpot(EUR.w, EUR.d); o.loc = { k: "f", x, y, a: 0 }; } else { const l = keyLoc(v); o.loc = l; o.o = maxO(l); } await whSave(); });
+    on("ws_at", "onchange", async () => { const v = $("ws_at").value; if (v === "f") { const [x, y] = findSpot(PW(o), PD(o)); o.loc = { k: "f", x, y, a: 0 }; } else { const l = keyLoc(v); o.loc = l; o.o = maxO(l); } await whSave(); });
     on("ws_del", "onclick", () => delLp(o));
   } else {
     const k = kOf(o.id);
@@ -2019,17 +2047,25 @@ function bindSel(ws, o) {
     on("ws_del", "onclick", () => delPal(k));
   }
 }
-$("whsel").onclick = e => { const c = e.target.closest("[data-cv]"); if (c) return convLv(...c.dataset.cv.split(":").map(Number)); const b = e.target.closest("[data-addb],[data-addp],[data-b],[data-p]"); if (!b) return; treeClick(b); };
+$("whsel").onclick = e => { const dl = e.target.closest("[data-dl]"); if (dl) return delLv(...dl.dataset.dl.split(":").map(Number)); const c = e.target.closest("[data-cv]"); if (c) return convLv(...c.dataset.cv.split(":").map(Number)); const b = e.target.closest("[data-addb],[data-addp],[data-b],[data-p]"); if (!b) return; treeClick(b); };
+async function delLv(id, l) { // ta bort ett hyllplan; planen ovanför behåller sin höjd (t.ex. för att få plats med en pall under)
+  const r = rackById(id); if (!r || r.lv < 2) return; const its = rackItems(id), on = its.filter(x => x.l === l).length;
+  if (on) return toast(`Det står ${on} sak(er) på plan ${l + 1} – flytta eller radera dem först`, 4000);
+  if (!(await dialog({ err: 1, title: `Ta bort plan ${l + 1}?`, text: `Plan ${l + 1} (${lvName(r, l)} på ${fm(levelZ(r, l))} m) tas bort från ${r.n}. Planen ovanför sitter kvar på samma höjd.${l === 0 && r.k === "h" ? " Därefter kan du lägga en pallplats på golvet under hyllan." : ""}`, yes: "Ta bort planet" }))) return;
+  matZ(r).splice(l, 1); its.forEach(x => { if (x.l > l) x.l--; }); r.lv--; if (l < pbOf(r)) r.pb--;
+  if (await whSave()) toast(`Plan ${l + 1} borttaget`, 2500);
+}
 async function convLv(id, d) { // gör om nedersta hyllplanet till pallplats (d = 1) eller tillbaka (d = -1); antalet plan är detsamma, hyllplanen ovanför flyttas upp/ner
   const r = rackById(id); if (!r) return; const l = d > 0 ? pbOf(r) : pbOf(r) - 1;
   if (d < 0 && S.wh.lp.some(p => p.loc.k === "r" && p.loc.r === id && p.loc.l === l)) return toast("Flytta pallen på pallplatsen först", 3500);
   if (d > 0 && !(await dialog({ title: `Gör om plan ${l + 1} till pallplats?`, text: `Plan ${l + 1} på ${r.n} blir en pallplats (${fm(r.ph || 1.4)} m hög, kan ändras) och hyllplanen ovanför flyttas upp. Backar som står på planet står kvar, nu på golvet under hyllan.`, yes: "Gör om" }))) return;
+  if (hasZ(r)) { const z = r.zs; if (d > 0) { if (l === 0) z[0] = 0; const need = r.ph || 1.4, gap = l < r.lv - 1 ? z[l + 1] - z[l] : need; if (gap < need) for (let j = l + 1; j < r.lv; j++) z[j] = Math.round((z[j] + need - gap) * 1000) / 1000; } else if (l === 0) z[0] = Math.min(.08, z[1] - .05); }
   r.pb = pbOf(r) + d; if (!r.ph) r.ph = 1.4; if (await whSave()) toast(d > 0 ? `Plan ${l + 1} är nu en pallplats – tryck + Pall för att ställa dit en pall` : `Plan ${l + 1} är nu ett hyllplan igen`, 3500);
 }
 async function delRack(r) {
   const bx = S.pals.filter(d => d.loc && d.loc.k === "r" && d.loc.r === r.id), lp = S.wh.lp.filter(p => p.loc.k === "r" && p.loc.r === r.id);
   if (!(await dialog({ err: 1, title: `Radera ${r.n}?`, text: `${r.n} tas bort för alla i projektet.${bx.length || lp.length ? ` ${bx.length} back(ar) på den blir utan plats i lagret och ${lp.length} pall(ar) ställs på golvet.` : ""} Inga lås raderas.`, yes: `Radera ${r.n}` }))) return;
-  S.wh.r = S.wh.r.filter(x => x !== r); bx.forEach(d => { delete d.loc; delete d.o; }); lp.forEach(p => { const [x, y] = findSpot(EUR.w, EUR.d); p.loc = { k: "f", x, y, a: 0 }; });
+  S.wh.r = S.wh.r.filter(x => x !== r); bx.forEach(d => { delete d.loc; delete d.o; }); lp.forEach(p => { const [x, y] = findSpot(PW(p), PD(p)); p.loc = { k: "f", x, y, a: 0 }; });
   S.ws = null; if (await whSave()) toast(`${r.n} raderad`, 2500);
 }
 async function delLp(p) {
@@ -2088,8 +2124,8 @@ function w3init() {
   W3.scene.add(new THREE.HemisphereLight(0xffffff, 0x8a93a6, .78)); const sun = new THREE.DirectionalLight(0xffffff, .5); sun.position.set(-.6, 2, 1.1); W3.scene.add(sun);
   W3.g = new THREE.Group(); W3.scene.add(W3.g); W3.ray = new THREE.Raycaster(); W3.ndc = new THREE.Vector2(); W3.unit = new THREE.BoxGeometry(1, 1, 1); W3.plane = new THREE.PlaneGeometry(1, 1);
   const M = c => new THREE.MeshStandardMaterial({ color: c, roughness: .65, metalness: .05 });
-  W3.m = { floor: M(0xe4e8ee), floorD: M(0x262c34), up: M(0x3b6ea5), beam: M(0xe0832a), shelf: M(0xb9c0ca), wood: M(0xc8a06a), krage: M(0x9c7240), bE: M(0x7ea7e6), b: M(0x2463c9), bF: M(0x143f86), bad: M(0xc62828),
-    wallM: new THREE.MeshStandardMaterial({ color: 0xc9d0d9, roughness: .9, transparent: true, opacity: .55, depthWrite: false, side: THREE.DoubleSide }), door: M(0xf59e0b),
+  W3.m = { floor: M(0xe4e8ee), floorD: M(0x262c34), up: M(0x3b6ea5), beam: M(0xe0832a), shelf: M(0xb9c0ca), wood: M(0xd9b984), krage: M(0xb4864e), bE: M(0x7ea7e6), b: M(0x2463c9), bF: M(0x143f86), bad: M(0xc62828),
+    wallM: new THREE.MeshStandardMaterial({ color: 0xc9d0d9, roughness: .9, transparent: true, opacity: .55, depthWrite: false, side: THREE.DoubleSide }), door: M(0xf59e0b), wood2: M(0xc29a62), block: M(0xa98250), hinge: new THREE.MeshStandardMaterial({ color: 0x9aa3ad, roughness: .4, metalness: .35 }),
     sel: new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: .4, emissive: 0xb45f00, emissiveIntensity: .45 }), line: new THREE.LineBasicMaterial({ color: 0x8a93a6, transparent: true, opacity: .35 }), wall: new THREE.LineBasicMaterial({ color: 0x1f2937 }) };
   w3bind(el); W3.ok = true; new ResizeObserver(() => w3resize()).observe($("wh3")); w3resize(); return true;
 }
@@ -2147,9 +2183,17 @@ function w3build() {
       else if (l > 0) for (const v of [-r.D / 2 + .03, r.D / 2 - .03]) { const [x, y] = rot(r.x, r.y, r.a, 0, v); add(r.L, .1, .05, x, z - .1, y, sel ? m.sel : m.beam, r.a, ud); } }
     const lb = w3label(r.n, ls); lb.position.set(r.x, top + ls * .9, r.y); g.add(lb); });
   lay.lp.forEach((P, id) => { const p = lpById(id); if (!p) return; const sel = isSel("lp", id), ud = { k: "lp", id };
-    add(EUR.w, EUR.h, EUR.d, P.x, P.z, P.y, sel ? m.sel : m.wood, P.a, ud);
-    for (let i = 0; i < p.kr; i++) { const z = P.z + EUR.h + i * KRAGE + .004;
-      for (const [w, d, u, v] of [[EUR.w, .02, 0, -EUR.d / 2 + .01], [EUR.w, .02, 0, EUR.d / 2 - .01], [.02, EUR.d - .04, -EUR.w / 2 + .01, 0], [.02, EUR.d - .04, EUR.w / 2 - .01, 0]]) { const [x, y] = rot(P.x, P.y, P.a, u, v); add(w, KRAGE - .008, d, x, z, y, sel ? m.sel : P.bover ? m.bad : m.krage, P.a, ud); } }
+    const pw = PW(p), pd = PD(p), at = (u, v) => rot(P.x, P.y, P.a, u, v), M = k => sel ? m.sel : m[k];
+    const part = (w, h, d, u, v, z, k) => { const [x, y] = at(u, v); add(w, h, d, x, P.z + z, y, M(k), P.a, ud); };
+    // pall som en riktig EUR-pall: bottenbrädor, 9 klossar, tvärbrädor och däckbrädor med springor
+    const us = [-pw / 2 + .0725, 0, pw / 2 - .0725], vs = [-pd / 2 + .05, 0, pd / 2 - .05];
+    vs.forEach(v => part(pw, .022, .1, 0, v, 0, "wood2"));
+    us.forEach(u => vs.forEach(v => part(.145, .078, v ? .145 : .1, u, v, .022, "block")));
+    us.forEach(u => part(.145, .022, pd, u, 0, .1, "wood2"));
+    const nb = Math.max(3, Math.round(pd / .16)), bw = pd / nb * .72; for (let i = 0; i < nb; i++) part(pw, .022, bw, 0, -pd / 2 + bw / 2 + i * (pd - bw) / (nb - 1), .122, "wood");
+    for (let i = 0; i < p.kr; i++) { const z = EUR.h + i * KRAGE + .004, kk = P.bover ? "bad" : "krage";
+      for (const [w, d, u, v] of [[pw, .02, 0, -pd / 2 + .01], [pw, .02, 0, pd / 2 - .01], [.02, pd - .04, -pw / 2 + .01, 0], [.02, pd - .04, pw / 2 - .01, 0]]) part(w, KRAGE - .012, d, u, v, z, kk);
+      for (const su of [-1, 1]) for (const sv of [-1, 1]) for (const dz of [.025, KRAGE - .07]) part(.032, .03, .032, su * (pw / 2 - .008), sv * (pd / 2 - .008), z + dz, "hinge"); } // gångjärn i hörnen
     if (p.loc.k === "f") { const lb = w3label(p.n, ls * .8); lb.position.set(P.x, P.z + EUR.h + Math.max(p.kr * KRAGE, .25) + ls * .7, P.y); g.add(lb); } });
   lay.box.forEach((B, k) => { const d = S.pals[k - 1], c = cnt[k] || 0, cap = capOf(k), sel = isSel("b", d.id);
     const mt = sel ? m.sel : B.over ? m.bad : !c ? m.bE : cap && c >= cap ? m.bF : m.b; add(Math.max(.02, B.w - .01), B.h - .005, Math.max(.02, B.d - .01), B.x, B.z + .003, B.y, mt, B.a, { k: "b", id: d.id });
