@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Inläsning - Smarta Lås (V9)</title>
+<title>Inläsning - Smarta Lås</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%231f5fbf'/%3E%3Cg fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' transform='translate%284 4%29 scale%28.67%29'%3E%3Crect x='3' y='11' width='18' height='11' rx='2'/%3E%3Cpath d='M7 11V7a5 5 0 0 1 10 0v4'/%3E%3C/g%3E%3C/svg%3E">
 <meta name="theme-color" content="#1f2937">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -80,6 +80,8 @@ h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
 #palmsg{padding:6px 0}
 .sel{display:flex;gap:12px;align-items:center;justify-content:space-between;border:1px solid var(--bd);border-radius:8px;padding:10px 12px;margin-top:10px;background:var(--bg)}
 .sel .sn{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.02em;line-height:1.2;word-break:break-all}
+.swatches{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 4px}.sw{width:32px;height:32px;padding:0;border-radius:50%;border:2px solid var(--card);box-shadow:0 0 0 1px var(--bd)}.sw.on{box-shadow:0 0 0 3px var(--tx)}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:baseline}
 .pmap{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:8px}
 .ptile{display:flex;flex-direction:column;align-items:stretch;gap:6px;text-align:left;background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:10px;font-weight:400}
 .ptile.cur{border:2px solid var(--ac);padding:9px}.ptile.full .pc{color:var(--ok);font-weight:600}
@@ -87,6 +89,23 @@ h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
 .pth{display:flex;justify-content:space-between;gap:6px;align-items:flex-start}.pth b{font-size:14px;overflow-wrap:anywhere}.badge.on{background:var(--ac);margin:0;flex:none}
 .pstack{display:flex;flex-direction:column;gap:2px}.pbar{height:6px;border-radius:2px;background:color-mix(in srgb,var(--bd) 80%,transparent);overflow:hidden}.pbar span{display:block;height:100%;background:var(--ac)}
 .lg{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--mut);margin-top:8px}
+#whsvg{width:100%;display:block;touch-action:none;border:1px solid var(--bd);border-radius:8px;background:var(--bg);max-height:65vh;user-select:none;-webkit-user-select:none}
+#whsvg text{fill:var(--tx);text-anchor:middle;dominant-baseline:middle;pointer-events:none;font-family:system-ui,sans-serif}
+#whsvg .wf{fill:var(--card);stroke:var(--tx);stroke-width:2px;vector-effect:non-scaling-stroke}
+#whsvg .wg{stroke:var(--bd);stroke-width:1px;vector-effect:non-scaling-stroke}
+#whsvg .wr{fill:#d3deed;stroke:#3b6ea5;stroke-width:1.5px;vector-effect:non-scaling-stroke;cursor:move}#whsvg .wr.p{fill:#f7dfc2;stroke:#c76d1a}
+#whsvg .wb{stroke:#3b6ea5;stroke-width:1px;vector-effect:non-scaling-stroke;opacity:.6;pointer-events:none}
+#whsvg .wp{fill:#e2c79d;stroke:#8a6233;stroke-width:1.5px;vector-effect:non-scaling-stroke;cursor:move}
+#whsvg .wx{fill:#2463c9;stroke:#163f86;stroke-width:1px;vector-effect:non-scaling-stroke;fill-opacity:.85}#whsvg .wx.e{fill:#7ea7e6}
+#whsvg .s{stroke:#f59e0b!important;stroke-width:3.5px!important}#whsvg .bad{stroke:var(--bad)!important;stroke-width:3px!important}
+@media(prefers-color-scheme:dark){#whsvg .wr{fill:#24364d}#whsvg .wr.p{fill:#4a3420}#whsvg .wp{fill:#6b5233}}
+#wh3{position:relative;width:100%;height:min(62vh,540px);min-height:300px;border-radius:8px;overflow:hidden;border:1px solid var(--bd);background:linear-gradient(180deg,color-mix(in srgb,var(--ac) 11%,var(--card)),var(--card) 75%)}
+#wh3 .ctl{position:absolute;right:8px;top:8px;display:flex;flex-direction:column;gap:6px;z-index:3}#wh3 .ctl button{width:38px;height:38px;padding:0;border-radius:50%;box-shadow:0 1px 5px rgba(0,0,0,.2)}
+.lvl{border-top:1px solid var(--bd);padding:8px 0 4px}.lvl:first-of-type{border-top:0}
+.wtr{border:1px solid var(--bd);border-radius:8px;padding:10px;margin-top:10px;background:var(--bg)}
+.wtr>.th{display:flex;gap:8px;align-items:center;justify-content:space-between}
+.chips button.pl.sm{padding:5px 9px;font-size:13px;font-weight:600}
+.warnx{color:var(--bad);font-weight:600}
 .lg i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}.lg i.g{border:1px dashed var(--mut)}
 </style>
 </head>
@@ -118,11 +137,13 @@ h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
       <div><b id="ptitle"></b><div class="mut">Delningskod: <b id="pcode" style="font-size:18px;letter-spacing:2px"></b> <a href="#" id="copy">kopiera</a></div></div>
       <button class="sec fit" id="leave">Byt projekt</button>
     </div>
+    <div class="seg" style="margin:4px 0 4px"><button id="lmE">Enkelt läge</button><button id="lmL" class="sec">Lagerläge</button></div>
+    <div class="mut" id="lminfo"></div>
   </div>
-  <div class="tabs"><button id="tScan">Skanna</button><button id="tList" class="sec">Lista (<span id="cnt">0</span>)</button><button id="tPal" class="sec">Pall</button></div>
+  <div class="tabs"><button id="tScan">Skanna</button><button id="tList" class="sec">Lista (<span id="cnt">0</span>)</button><button id="tPal" class="sec">Pall</button><button id="tLag" class="sec hide">Lager</button></div>
 
   <div id="vScan">
-    <div class="row hide" id="pallrow"><span class="fit mut">Skanna till</span><select id="actsel" aria-label="Pall att skanna till"></select><button class="sec fit" id="newpall"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Ny pall</button></div>
+    <div class="row hide" id="pallrow"><span class="fit mut">Skanna till</span><select id="actsel" aria-label="Pall att skanna till"></select><button class="sec fit" id="newpall"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Ny pall</span></button></div>
     <div class="seg"><button id="mQR">QR-kod</button><button id="mOCR" class="sec">Siffror (OCR)</button></div>
     <div id="vwrap"><video id="vid" playsinline muted></video><div id="box"></div><div id="stat"></div></div>
     <div class="row">
@@ -174,14 +195,16 @@ h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
   </div>
 
   <div id="vPal" class="hide">
-    <div class="card hide" id="mapcard"><h4>Alla pallar</h4>
+    <div class="card hide" id="mapcard"><h4 id="maptitle">Alla pallar</h4>
       <div class="pmap" id="palmap"></div>
       <div class="mut" id="mapinfo" style="margin-top:8px"></div></div>
     <div class="card"><h4 id="paltitle">Pallens namn och storlek</h4>
-      <div class="mut">Varje pall har eget namn och egen storlek: antal lås längs X-axeln, längs Y-axeln och antal våningar. Platserna fylls i skanningsordning: du börjar på X 1 och lastar utmed Y, därefter nästa X-position, och sist nästa våning. Ändringen gäller pallen som visas nedan.</div>
-      <div class="row"><label class="mut" style="flex:2">Namn<input type="text" id="dn" placeholder="Pall 1" maxlength="40"></label></div>
+      <div class="mut">Varje pall eller back har eget namn, typ, färg och storlek: antal lås längs X-axeln, längs Y-axeln och antal våningar. Platserna fylls i skanningsordning: du börjar på X 1 och lastar utmed Y, därefter nästa X-position, och sist nästa våning. Ändringen gäller den som visas nedan.</div>
+      <div class="row"><label class="mut" style="flex:2">Namn<input type="text" id="dn" placeholder="Pall 1" maxlength="40"></label><label class="mut">Typ<select id="dt"><option value="pall">Pall</option><option value="back">Back</option></select></label></div>
+      <div class="mut" style="margin-top:4px">Färg</div><div class="swatches" id="dcol"></div>
       <div class="row"><label class="mut">X<input type="text" id="dx" inputmode="numeric" placeholder="X"></label><label class="mut">Y<input type="text" id="dy" inputmode="numeric" placeholder="Y"></label><label class="mut">Våningar<input type="text" id="dz" inputmode="numeric" placeholder="Våningar"></label></div>
-      <div class="row"><button id="sdims">Spara pallen</button><button class="sec fit" id="newpall2"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Ny pall</button></div></div>
+      <div class="row"><button id="sdims">Spara pallen</button><button class="sec fit" id="newpall2"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Ny pall</span></button></div>
+      <div class="row"><button class="bad fit hide" id="delpal"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>Radera</button></div></div>
     <div class="card"><h4>Plats för nästa lås</h4>
       <div class="mut">Nya lås hamnar automatiskt på närmaste lediga plats (luckor efter borttagna lås fylls först). Vill du börja på en viss plats, välj den här: nästa lås hamnar där och följande lås fortsätter i ordning därifrån (t.ex. X 3, Y 3 → X 3, Y 4). Tryck Automatiskt för att gå tillbaka till första lediga plats.</div>
       <div class="row"><button class="sec" id="nxpick">Välj plats för nästa lås</button><button class="sec fit hide" id="nxclr">Automatiskt</button></div>
@@ -198,6 +221,24 @@ h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
       <div id="palbox" class="hide"><div id="glctl"><button class="sec" id="zin" aria-label="Zooma in"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M11 8v6M8 11h6"/></svg></button><button class="sec" id="zout" aria-label="Zooma ut"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M8 11h6"/></svg></button><button class="sec" id="rst" aria-label="Återställ vy"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button></div><div id="tip" class="hide"></div></div>
       <div class="lg"><span><i style="background:#3f78c8"></i>Upptagen</span><span><i style="background:#f59e0b"></i>Valt lås</span><span><i style="background:#8fa6c8"></i>Plan under</span><span><i class="g"></i>Ledig plats</span></div>
       <div id="cellinfo"></div><div class="mut" id="palcnt" style="margin-top:8px"></div></div>
+  </div>
+
+  <div id="vLag" class="hide">
+    <div class="card"><h4><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21V8l9-5 9 5v13M7 21v-8h10v8M7 17h10"/></svg>Lagerlokal</h4>
+      <div class="mut">Alla mått i meter. Lägg till hyllställ, pallställ och pallar, dra dem till rätt plats i planritningen och ställ ut blå backar på hyllplanen och pallarna. Backarna fylls på i ordning längs hyllan och i lager på pallarna (inom pallkragarna).</div>
+      <div class="row"><label class="mut">Bredd (m)<input type="text" id="hw" inputmode="decimal"></label><label class="mut">Djup (m)<input type="text" id="hd" inputmode="decimal"></label></div></div>
+    <div class="card">
+      <div class="row"><button class="sec" id="addH"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Hyllställ</button><button class="sec" id="addP"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Pallställ</button><button class="sec" id="addL"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Pall på golvet</button></div>
+      <div class="seg"><button id="wv2">Planritning</button><button id="wv3" class="sec">3D</button></div>
+      <div id="wplan"><svg id="whsvg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Planritning av lagret"></svg>
+        <div class="row"><button class="sec fit" id="wzout" aria-label="Zooma ut"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M8 11h6"/></svg></button><button class="sec fit" id="wzin" aria-label="Zooma in"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M11 8v6M8 11h6"/></svg></button><span class="mut">Dra hyllor och pallar för att flytta dem (rutnät 1 m). Tryck för att välja. Inzoomad: dra på tom yta för att panorera.</span></div></div>
+      <div id="wh3" class="hide"><div class="ctl"><button class="sec" id="w3in" aria-label="Zooma in"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M11 8v6M8 11h6"/></svg></button><button class="sec" id="w3out" aria-label="Zooma ut"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3M8 11h6"/></svg></button><button class="sec" id="w3rst" aria-label="Återställ vy"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button></div></div>
+      <div class="lg" id="w3lg"><span><i style="background:#7ea7e6"></i>Tom back</span><span><i style="background:#2463c9"></i>Back med lås</span><span><i style="background:#143f86"></i>Full back</span><span><i style="background:#f59e0b"></i>Vald</span><span><i style="background:#c62828"></i>Får inte plats</span></div>
+      <div class="mut" id="whhelp" style="margin-top:6px"></div></div>
+    <div class="card" id="whsel"></div>
+    <div class="card"><h4>Hyllor, pallar och backar</h4>
+      <input type="text" id="whq" placeholder="Sök namn på hylla, pall eller back">
+      <div id="whtree"></div></div>
   </div>
 
   <div id="vList" class="hide">
@@ -287,7 +328,7 @@ $("join").onclick = async () => {
 };
 $("leave").onclick = () => {
   localStorage.removeItem("code"); localStorage.removeItem("pname"); S.code = null; if (S.ch) db.removeChannel(S.ch);
-  Object.assign(S, { scans: [], pals: [], act: null, next: null, cursor: null, hit: null, hitCell: null, last: "", lastT: 0, pall: 0 }); S.sel.clear(); S.planSel.clear(); S.palSel.clear(); show();
+  Object.assign(S, { scans: [], pals: [], wh: WH0(), ws: null, act: null, next: null, cursor: null, hit: null, hitCell: null, last: "", lastT: 0, pall: 0 }); S.sel.clear(); S.planSel.clear(); S.palSel.clear(); show();
 };
 $("isurl").value = location.origin + location.pathname + "?qr=";
 $("iscopy").onclick = () => { navigator.clipboard?.writeText($("isurl").value).then(() => toast("Adressen kopierad"), () => { $("isurl").select(); toast("Markera och kopiera adressen"); }); };
@@ -302,22 +343,40 @@ S.pals = [];
 Object.defineProperty(S, "dims", { get() { return S.pals.length ? palAt((S.pall || 0) + 1) : null; } }); // storleken på pallen som visas (null = inga pallar ännu)
 const okSize = d => d && d.x >= 1 && d.y >= 1 && d.z >= 1 && d.x <= 99 && d.y <= 99 && d.z <= 99;
 function palAt(p) { return S.pals[p - 1] || S.pals[S.pals.length - 1]; }
-const palName = p => (S.pals[p - 1] && S.pals[p - 1].n) || `Pall ${p}`;
-const capOf = p => { const d = palAt(p); return d.x * d.y * d.z; };
-const pallOf = slot => Math.floor(slot / STRIDE) + 1;
+// Varje pall/back har ett fast id som aldrig ändras (platsnumret bygger på det), så att andra pallar inte påverkas när en raderas.
+const COLORS = ["#3f78c8", "#2e9e5b", "#e0832a", "#c0392b", "#8e44ad", "#159aa8", "#c99a06", "#6b7280"];
+const TYPES = { pall: "Pall", back: "Back" };
+const typeName = t => TYPES[t] || "Pall";
+const palType = p => (S.pals[p - 1] && S.pals[p - 1].t) || "pall";
+const palColor = p => (S.pals[p - 1] && S.pals[p - 1].c) || COLORS[0];
+const nextId = () => S.pals.reduce((m, d) => Math.max(m, d.id + 1), 0);
+const base = p => (S.pals[p - 1] ? S.pals[p - 1].id : p - 1) * STRIDE; // första platsnumret på pall/back p
+function word(plural, def) { // "pall", "back" eller "pall/back" beroende på vad projektet har
+  const ts = new Set(S.pals.map(d => d.t || "pall")), b = ts.size === 1 && ts.has("back"), mix = ts.size > 1;
+  return plural ? (mix ? "pallar/backar" : b ? "backar" : "pallar") : def ? (mix ? "pallen/backen" : b ? "backen" : "pallen") : (mix ? "pall/back" : b ? "back" : "pall");
+}
+const Cap = s => s[0].toUpperCase() + s.slice(1);
+const palName = p => (S.pals[p - 1] && S.pals[p - 1].n) || `${typeName(palType(p))} ${p}`;
+const capOf = p => { const d = palAt(p); return d.u ? 0 : d.x * d.y * d.z; }; // u = backens lås-storlek är inte vald än (väljs vid första låset)
+const pallOf = slot => { const id = Math.floor(slot / STRIDE), i = S.pals.findIndex(d => d.id === id); return i + 1; }; // 0 = pallen finns inte (raderad)
 function firstFree(used, prefer) { // närmaste lediga plats: först på pallen prefer, annars första pall med plats
-  for (const b of [prefer || 1, ...Array.from({ length: nPall() }, (_, i) => i + 1)]) { const o = (b - 1) * STRIDE; for (let s = o; s < o + capOf(b); s++) if (!used.has(s)) return s; }
+  for (const b of [prefer || 1, ...Array.from({ length: nPall() }, (_, i) => i + 1)]) { const o = base(b); for (let s = o; s < o + capOf(b); s++) if (!used.has(s)) return s; }
   return null;
 }
-const nPall = () => S.pals.length ? Math.max(S.pals.length, ...S.scans.filter(r => r.slot != null).map(r => pallOf(r.slot))) : 1;
+const nPall = () => S.pals.length || 1;
 function parsePals(t) { // ny form (JSON) eller gammal form "x,y,z[,antal]" där alla pallar hade samma storlek
   t = String(t || "").trim(); if (!t) return { pals: [] };
-  if (t[0] === "{") { try { const j = JSON.parse(t); return { pals: (j.p || []).filter(okSize).map((d, i) => ({ n: String(d.n || `Pall ${i + 1}`).slice(0, 40), x: +d.x, y: +d.y, z: +d.z })) }; } catch { return { pals: [] }; } }
+  if (t[0] === "{") { try {
+    const j = JSON.parse(t), seen = new Set(); let nx = 0;
+    const ps = (j.p || []).filter(okSize).map((d, i) => { const id = Number.isInteger(d.id) && d.id >= 0 && !seen.has(d.id) ? d.id : i; seen.add(id); nx = Math.max(nx, id + 1); const ty = TYPES[d.t] ? d.t : "pall";
+      return { id, n: String(d.n || `${typeName(ty)} ${i + 1}`).slice(0, 40), x: +d.x, y: +d.y, z: +d.z, c: /^#[0-9a-f]{6}$/i.test(d.c || "") ? d.c : COLORS[id % COLORS.length], t: ty, ...boxExtra(d) }; });
+    return { pals: ps, wh: parseWh(j.w) };
+  } catch { return { pals: [] }; } }
   const [x, y, z, n] = t.split(",").map(Number); if (!okSize({ x, y, z })) return { pals: [] };
-  return { pals: Array.from({ length: n >= 1 ? n : 1 }, (_, i) => ({ n: `Pall ${i + 1}`, x, y, z })), old: x * y * z };
+  return { pals: Array.from({ length: n >= 1 ? n : 1 }, (_, i) => ({ id: i, n: `Pall ${i + 1}`, x, y, z, c: COLORS[i % COLORS.length], t: "pall" })), old: x * y * z };
 }
 async function savePals() {
-  const { error } = await db.from("projects").update({ dims: JSON.stringify({ v: 2, p: S.pals }) }).eq("code", S.code);
+  const { error } = await db.from("projects").update({ dims: JSON.stringify({ v: 3, p: S.pals, w: S.wh }) }).eq("code", S.code);
   if (error) { toast(hint(error), 5000); return false; } return true;
 }
 async function migrate(oldCap, rows) { // gammal numrering (pall = plats ÷ pallstorlek) -> ny (pall = plats ÷ STRIDE). Görs en gång per projekt.
@@ -326,7 +385,7 @@ async function migrate(oldCap, rows) { // gammal numrering (pall = plats ÷ pall
     const placed = rows.filter(r => r.slot != null);
     if (!placed.some(r => r.slot >= STRIDE)) { // redan omräknade platser (av en annan telefon) räknas inte om igen
       const need = Math.max(S.pals.length, ...placed.map(r => Math.floor(r.slot / oldCap) + 1));
-      while (S.pals.length < need) S.pals.push({ ...S.pals[0], n: `Pall ${S.pals.length + 1}` });
+      while (S.pals.length < need) { const id = nextId(); S.pals.push({ ...S.pals[0], id, n: `Pall ${S.pals.length + 1}`, c: COLORS[id % COLORS.length] }); }
       const up = placed.filter(r => r.slot >= oldCap).map(r => ({ ...r, slot: Math.floor(r.slot / oldCap) * STRIDE + r.slot % oldCap }));
       if (up.length) { const { error } = await db.from("scans").upsert(up); if (error) { toast(hint(error), 5000); return false; } }
     }
@@ -335,13 +394,13 @@ async function migrate(oldCap, rows) { // gammal numrering (pall = plats ÷ pall
 }
 const hint = e => /slot|dims/i.test(e.message) ? "Databasen saknar nya kolumner – kör uppdateringsskriptet i Supabase (se instruktionerna)." : "Fel: " + e.message;
 const esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-function pos(slot) { if (slot == null || !S.pals.length) return null; const p = pallOf(slot), d = palAt(p), r = slot % STRIDE; return { p, x: Math.floor(r / d.y) % d.x + 1, y: r % d.y + 1, z: Math.floor(r / (d.x * d.y)) + 1 }; }
-const slotOf = (p, z, x, y) => { const d = palAt(p); return (p - 1) * STRIDE + (z - 1) * d.x * d.y + (x - 1) * d.y + (y - 1); };
-const posTxt = p => p ? `${palName(p.p)} · X${p.x} Y${p.y} V${p.z}` : "";
+function pos(slot) { if (slot == null || !S.pals.length) return null; const p = pallOf(slot); if (!p) return null; const d = palAt(p), r = slot % STRIDE; return { p, x: Math.floor(r / d.y) % d.x + 1, y: r % d.y + 1, z: Math.floor(r / (d.x * d.y)) + 1 }; }
+const slotOf = (p, z, x, y) => { const d = palAt(p); return base(p) + (z - 1) * d.x * d.y + (x - 1) * d.y + (y - 1); };
+const posTxt = p => p ? `${palName(p.p)}${whTxt(p.p)} · X${p.x} Y${p.y} V${p.z}` : "";
 async function load(noMig) {
   const [{ data, error }, { data: pj }] = await Promise.all([db.from("scans").select("*").eq("project_code", S.code).order("scanned_at", { ascending: false }), db.from("projects").select("dims").eq("code", S.code).maybeSingle()]);
   if (error) return toast("Kunde inte hämta: " + error.message, 4000);
-  const pp = parsePals(pj && pj.dims); S.pals = pp.pals;
+  const pp = parsePals(pj && pj.dims); S.pals = pp.pals; S.wh = pp.wh || WH0();
   if (pp.old && !noMig) { if (await migrate(pp.old, data)) return load(true); } // gammalt format: räkna om platserna en gång (bara ett försök per laddning)
   S.scans = data; S.sel = new Set([...S.sel].filter(id => data.some(r => r.id === id))); render();
 }
@@ -363,12 +422,13 @@ function render() {
     if (watched(r.serial)) { const d = document.createElement("span"); d.className = "badge dup"; d.textContent = "Varningslista"; s.appendChild(d); }
     const t = document.createElement("td"); t.textContent = fmt(r.scanned_at);
     const b = document.createElement("td"); b.textContent = r.scanned_by || ""; b.className = "mut";
-    const pz = document.createElement("td"); pz.className = "mut"; pz.textContent = posTxt(pos(r.slot));
+    const pz = document.createElement("td"), pp_ = pos(r.slot); pz.className = "mut"; pz.textContent = posTxt(pp_);
+    if (pp_) { const dt = document.createElement("span"); dt.className = "dot"; dt.style.background = palColor(pp_.p); pz.prepend(dt); }
     const ed = document.createElement("td"), eb = document.createElement("button"); eb.className = "sec"; eb.style.padding = "6px 9px"; eb.setAttribute("aria-label", "Redigera " + r.serial);
     eb.innerHTML = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>'; eb.onclick = () => editScan(r); ed.appendChild(eb);
     if (S.dims) { const mb = document.createElement("button"); mb.className = "sec"; mb.style.cssText = "padding:6px 9px;margin-left:4px"; mb.setAttribute("aria-label", "Flytta " + r.serial + " till annan plats"); mb.innerHTML = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/></svg>'; mb.onclick = () => moveScan(r); ed.appendChild(mb); }
     tr.append(c, s, pz, t, b, ed); tb.appendChild(tr);
-  }); upd(); renderPall(); renderPlans(); renderAct(); renderNext();
+  }); upd(); renderPall(); renderPlans(); renderAct(); renderNext(); renderWh();
 }
 function upd() { $("del").textContent = `Ta bort (${S.sel.size})`; $("del").disabled = !S.sel.size; $("all").checked = S.scans.length > 0 && S.sel.size === S.scans.length; }
 $("all").onchange = e => { S.sel = e.target.checked ? new Set(S.scans.map(r => r.id)) : new Set(); render(); };
@@ -397,21 +457,22 @@ async function save(serial, method, o = {}) {
   if (S.dims) {
     const rs = await freshSlots(), used = new Set(rs.map(r => r.slot).filter(n => n != null));
     if (S.next != null) { // vald plats för nästa lås (bekräftad i förväg); upptas den, flyttas låset där till närmaste lediga plats
-      target = S.next; const occ = rs.find(r => r.slot === target);
+      target = S.next; if (!(await ensureCap(pallOf(target)))) return toast("Inte sparad", 1500); const occ = rs.find(r => r.slot === target);
       if (occ) { used.add(target); const n = firstFree(used, pallOf(target)); const { error: e1 } = await db.from("scans").update({ slot: n }).eq("id", occ.id); if (e1) return toast(hint(e1), 5000); if (n != null) used.add(n); }
       slot = target;
     } else { // närmaste lediga plats på pallen du skannar till (luckor efter borttagna lås fylls först)
-      const a = S.act || 1, cap = capOf(a), free = b => { const o = (b - 1) * STRIDE; for (let s = o; s < o + capOf(b); s++) if (!used.has(s)) return s; return null; };
+      if (!(await ensureCap(S.act || 1))) return toast("Inte sparad", 1500);
+      const a = S.act || 1, cap = capOf(a), free = b => { const o = base(b); for (let s = o; s < o + capOf(b); s++) if (!used.has(s)) return s; return null; };
       if (S.cursor != null && pallOf(S.cursor) === a) { useCur = true; // efter en vald plats: fortsätt i ordning därifrån (X 3, Y 3 -> X 3, Y 4 …)
-        const o = (a - 1) * STRIDE; slot = null; for (let s = S.cursor + 1; s < o + capOf(a); s++) if (!used.has(s)) { slot = s; break; }
+        const o = base(a); slot = null; for (let s = S.cursor + 1; s < o + capOf(a); s++) if (!used.has(s)) { slot = s; break; }
         if (slot == null) { setCursor(null); useCur = false; toast(`Slutet av ${palName(a)} nått – fortsätter med lediga luckor från början`, 3500); slot = free(a); }
       } else slot = free(a);
       if (slot == null) { // pallen är full: föreslå nästa pall med plats, annars en ny pall
         let b = null; for (let k = 1; k <= nPall(); k++) if (k !== a && free(k) != null && (b == null || (k > a && b < a))) b = k;
         const ny = b == null; if (ny) b = nPall() + 1;
-        const bn = ny ? `Pall ${b}` : palName(b);
+        const bn = ny ? `${typeName(palType(a))} ${b}` : palName(b);
         if (!(await dialog({ err: 1, title: `${palName(a)} är full`, text: `Alla ${cap} platser på ${palName(a)} är upptagna. Lägg ${serial} på ${bn}${ny ? " (ny pall, samma storlek)" : ""}? Nya lås skannas sedan till ${bn}.`, yes: `Till ${bn}` }))) return toast("Inte sparad", 1500);
-        if (ny && !(await addPal(bn, palAt(a)))) return;
+        if (ny && !(await addPal(bn, palAt(a), palType(a)))) return;
         slot = free(b);
       }
     }
@@ -420,7 +481,7 @@ async function save(serial, method, o = {}) {
   for (let t = 0; t < 5; t++) {
     ({ error } = await db.from("scans").insert({ project_code: S.code, serial, method, scanned_by: S.me, slot }));
     if (!error || error.code !== "23505" || slot == null) break;
-    const used = new Set((await freshSlots()).map(r => r.slot).filter(n => n != null)), b = pallOf(slot), o = (b - 1) * STRIDE, end = o + capOf(b) - 1; slot = o; while (used.has(slot) && slot < end) slot++; // någon annan tog platsen just nu: nästa lediga på samma pall
+    const used = new Set((await freshSlots()).map(r => r.slot).filter(n => n != null)), b = pallOf(slot), o = base(b), end = o + capOf(b) - 1; slot = o; while (used.has(slot) && slot < end) slot++; // någon annan tog platsen just nu: nästa lediga på samma pall
     if (used.has(slot)) return toast(`${palName(b)} blev full precis nu – välj en annan pall och skanna igen`, 5000);
   }
   if (error) return toast(hint(error), 5000);
@@ -433,15 +494,15 @@ async function save(serial, method, o = {}) {
 }
 
 // ---------- Flera pallar: vilken pall nya lås skannas till (förval = den du använde senast) ----------
-async function addPal(name, size) { // ny pall sist i listan
-  const d = size || palAt(S.act || 1) || { x: 4, y: 4, z: 3 };
-  S.pals.push({ n: String(name || `Pall ${S.pals.length + 1}`).slice(0, 40), x: d.x, y: d.y, z: d.z });
+async function addPal(name, size, type) { // ny pall/back sist i listan, med eget id och nästa färg
+  const d = size || palAt(S.act || 1) || { x: 4, y: 4, z: 3 }, id = nextId(), t = type || "pall";
+  S.pals.push({ id, n: String(name || `${typeName(t)} ${S.pals.length + 1}`).slice(0, 40), x: d.x, y: d.y, z: d.z, c: COLORS[id % COLORS.length], t, ...(d.u ? { u: 1 } : {}), ...(d.loc ? { loc: { ...d.loc }, s: d.s, o: (d.o || 0) + .01 } : {}) }); // en ny back i lagret hamnar bredvid den förra
   if (!(await savePals())) { S.pals.pop(); return false; } return true;
 }
 // pallen nya lås skannas till; byts pall släpps "fortsätt i ordning"
-function setAct(a) { if (S.cursor != null && pallOf(S.cursor) !== a) { S.cursor = null; try { localStorage.removeItem("cur_" + S.code); } catch { } } S.act = a; try { localStorage.setItem("act_" + S.code, String(a)); } catch { } S.pall = a - 1; renderAct(); if (typeof renderNext === "function" && S.code) renderNext(); }
+function setAct(a) { if (S.cursor != null && pallOf(S.cursor) !== a) { S.cursor = null; try { localStorage.removeItem("cur_" + S.code); } catch { } } S.act = a; try { localStorage.setItem("act_" + S.code, "id" + (S.pals[a - 1] ? S.pals[a - 1].id : a - 1)); } catch { } S.pall = a - 1; renderAct(); if (typeof renderNext === "function" && S.code) renderNext(); }
 function initAct() { // förval: senast använda pall på den här telefonen, annars pallen där senaste låset i projektet skannades in
-  if (!S.dims) return; let a = +localStorage.getItem("act_" + S.code) || 0;
+  if (!S.dims) return; const sv = localStorage.getItem("act_" + S.code) || ""; let a = sv.startsWith("id") ? S.pals.findIndex(d => d.id === +sv.slice(2)) + 1 : +sv || 0;
   if (!a) { const last = S.scans.filter(r => r.slot != null).sort((p, q) => new Date(q.scanned_at) - new Date(p.scanned_at))[0]; a = last ? pallOf(last.slot) : 1; }
   S.act = Math.min(a, nPall() + 1); S.pall = S.act - 1; renderAct();
 }
@@ -450,17 +511,17 @@ function renderAct() {
   if (!S.act) S.act = 1;
   const n = Math.max(nPall(), S.act), cnt = Array(n + 1).fill(0); S.scans.forEach(r => { if (r.slot != null) cnt[pallOf(r.slot)]++; });
   const sel = $("actsel"); sel.innerHTML = "";
-  for (let k = 1; k <= n; k++) { const o = document.createElement("option"), cap = capOf(k); o.value = k; o.textContent = `${palName(k)} · ${cnt[k]} av ${cap}${cnt[k] >= cap ? " (full)" : ""}`; sel.appendChild(o); }
+  for (let k = 1; k <= n; k++) { const o = document.createElement("option"), cap = capOf(k); o.value = k; o.textContent = `${palName(k)}${whTxt(k)} · ${palAt(k).u ? "storlek väljs vid första låset" : `${cnt[k]} av ${cap}${cnt[k] >= cap ? " (full)" : ""}`}`; sel.appendChild(o); }
   sel.value = S.act;
 }
-$("actsel").onchange = e => { setAct(+e.target.value); e.target.blur(); toast(`Nya lås skannas till ${palName(S.act)}`, 2000); };
+$("actsel").onchange = async e => { const k = +e.target.value; e.target.blur(); if (!(await ensureCap(k))) { e.target.value = S.act || 1; return; } setAct(k); toast(`Nya lås skannas till ${palName(S.act)}`, 2000); };
 $("newpall").onclick = () => newPal();
 async function newPal() { // ny pall: namn (förslag "Pall N") och storlek (förslag: samma som pallen du skannar till)
   if (!S.dims) return toast("Ange den första pallens storlek under fliken Pall", 3000);
-  const n = nPall() + 1, d = palAt(S.act || 1);
-  const name = await dialog({ title: "Ny pall", text: `Namn på pallen. Storleken blir ${d.x} × ${d.y} × ${d.z} (X × Y × våningar) – den kan ändras under fliken Pall.`, yes: "Skapa pall", value: `Pall ${n}` });
-  if (name == null) return; if (!name) return toast("Pallen måste ha ett namn", 2500);
-  if (await addPal(name, d)) { setAct(S.pals.length); toast(`${name} skapad – nya lås skannas dit`, 3000); render(); }
+  const d = palAt(S.act || 1), t = palType(S.act || 1), w = typeName(t), names = new Set(S.pals.map(x => x.n.toLowerCase())); let n = nPall() + 1; while (names.has(`${w} ${n}`.toLowerCase())) n++; // förslag som inte redan finns
+  const name = await dialog({ title: `Ny ${w.toLowerCase()}`, text: `Namn. Storleken blir ${d.x} × ${d.y} × ${d.z} (X × Y × våningar) och typen ${w} – båda kan ändras under fliken ${Cap(word())}.`, yes: `Skapa ${w.toLowerCase()}`, value: `${w} ${n}` });
+  if (name == null) return; if (!name) return toast("Den måste ha ett namn", 2500);
+  if (await addPal(name, d, t)) { setAct(S.pals.length); toast(`${name} skapad – nya lås skannas dit`, 3000); render(); }
 }
 // ---------- Platser på pallen: välja plats, flytta lås, plats för nästa lås ----------
 async function freshSlots() { // platserna direkt från databasen (så att borttagna lås från en annan telefon räknas som lediga)
@@ -584,7 +645,7 @@ function exportData() { // {pallar: [{k, namn, rader}], utan: [rader], alla: [ra
   const bySlot = new Map(S.scans.filter(r => r.slot != null).map(r => [r.slot, r]));
   const pals = [];
   if (has) for (let k = 1; k <= nPall(); k++) {
-    if (!okP(k)) continue; const o = (k - 1) * STRIDE, rs = [];
+    if (!okP(k)) continue; const o = base(k), rs = [];
     if (empty) { for (let s = o; s < o + capOf(k); s++) if (okZ(pos(s).z)) rs.push(row(bySlot.get(s), s)); }
     else [...bySlot.keys()].filter(s => pallOf(s) === k && okZ(pos(s).z)).sort((a, b) => a - b).forEach(s => rs.push(row(bySlot.get(s), s)));
     pals.push({ k, rs });
@@ -606,7 +667,7 @@ $("xlsx").onclick = () => {
   };
   if (!d.has) { sheet("Lås", [HEAD.slice(0, 6), ...d.un.map(r => r.slice(0, 6))], COLS.slice(0, 6)); return XLSX.writeFile(wb, fname("xlsx")); }
   const ov = [["Pall", "Storlek (X × Y × våningar)", "Lås", "Platser", "Lediga", "Fyllnad"]];
-  d.pals.forEach(p => { const n = S.scans.filter(r => r.slot != null && pallOf(r.slot) === p.k).length, c = capOf(p.k), a = palAt(p.k); ov.push([palName(p.k), `${a.x} × ${a.y} × ${a.z}`, n, c, c - n, `${Math.round(n / c * 100)} %`]); });
+  d.pals.forEach(p => { const n = S.scans.filter(r => r.slot != null && pallOf(r.slot) === p.k).length, c = capOf(p.k), a = palAt(p.k); ov.push([palName(p.k) + whTxt(p.k), a.u ? "ej vald" : `${a.x} × ${a.y} × ${a.z}`, n, c, c - n, c ? `${Math.round(n / c * 100)} %` : ""]); });
   if (d.un.length) ov.push(["Utan plats", "", d.un.length, "", "", ""]);
   sheet("Lås", [HEAD, ...d.all], COLS); // första fliken = hela listan (det som syns när filen öppnas på telefonen eller i Google Kalkylark)
   if (d.pals.length > 1) { d.pals.forEach(p => sheet(palName(p.k), [HEAD, ...p.rs], COLS)); if (d.un.length) sheet("Utan plats", [HEAD, ...d.un], COLS); } // en flik per pall bara när det finns flera
@@ -621,8 +682,8 @@ $("csv").onclick = () => {
 };
 
 // ---------- Flikar & lägen ----------
-function tab(n) { for (const [k, v] of [["scan", "vScan"], ["list", "vList"], ["pal", "vPal"]]) { $(v).classList.toggle("hide", n !== k); $("t" + k[0].toUpperCase() + k.slice(1)).className = n === k ? "" : "sec"; } if (n === "pal") renderPall(); }
-$("tScan").onclick = () => tab("scan"); $("tList").onclick = () => tab("list"); $("tPal").onclick = () => tab("pal");
+function tab(n) { for (const [k, v] of [["scan", "vScan"], ["list", "vList"], ["pal", "vPal"], ["lag", "vLag"]]) { $(v).classList.toggle("hide", n !== k); $("t" + k[0].toUpperCase() + k.slice(1)).classList.toggle("sec", n !== k); } if (n === "pal") renderPall(); if (n === "lag") renderWh(); }
+$("tScan").onclick = () => tab("scan"); $("tList").onclick = () => tab("list"); $("tPal").onclick = () => tab("pal"); $("tLag").onclick = () => tab("lag");
 // ---------- Zoom ----------
 const Z = { hw: null, v: { qr: null, ocr: null }, sw: 1 }; // hw = kamerans egen zoom (min/max/step); saknas den används bildzoom 1–4
 const zr = () => Z.hw || { min: 1, max: 4, step: .1 };
@@ -1181,39 +1242,68 @@ function dialog1(o) {
     $("mno").onclick = () => done(false); $("myes").onclick = () => done(true); v.onkeydown = ev => { if (ev.key === "Enter") done(true); };
   });
 }
-// ---------- Pall ----------
-function renderPalForm() { // formuläret visar pallen som visas i Pall-fliken
+// ---------- Pall/back: namn, typ, färg, storlek, radera ----------
+S.fc = null; // vald färg i formuläret (innan Spara)
+function renderPalForm() { // formuläret visar pallen/backen som visas i fliken
   const has = S.pals.length > 0, k = (S.pall || 0) + 1, d = has ? palAt(k) : null;
-  $("paltitle").textContent = has ? `${palName(k)} – namn och storlek` : "Pallens storlek";
-  $("newpall2").classList.toggle("hide", !has); $("sdims").textContent = has ? `Spara ${palName(k)}` : "Spara pallstorlek";
-  if (["dn", "dx", "dy", "dz"].includes(document.activeElement && document.activeElement.id)) return; // skriv inte över medan du skriver
-  $("dn").value = has ? palName(k) : "Pall 1"; $("dx").value = d ? d.x : ""; $("dy").value = d ? d.y : ""; $("dz").value = d ? d.z : "";
+  $("paltitle").textContent = has ? `${palName(k)} – namn, typ, färg och storlek` : "Första pallens eller backens storlek";
+  $("newpall2").classList.toggle("hide", !has); $("delpal").classList.toggle("hide", !has); if (has) $("delpal").lastChild.textContent = `Radera ${palName(k)}`; $("sdims").textContent = has ? `Spara ${palName(k)}` : "Spara";
+  $("newpall2").lastChild.textContent = `Ny ${word()}`; $("newpall").lastChild.textContent = `Ny ${word()}`; $("tPal").textContent = Cap(word());
+  if (["dn", "dx", "dy", "dz", "dt"].includes(document.activeElement && document.activeElement.id) || S.formFor === k + "|" + (d && d.id) && S.formDirty) return; // skriv inte över medan du ändrar
+  S.formFor = k + "|" + (d && d.id); S.formDirty = false;
+  $("dt").value = has ? palType(k) : "pall"; $("dn").value = has ? palName(k) : "Pall 1"; $("dx").value = d && !d.u ? d.x : ""; $("dy").value = d && !d.u ? d.y : ""; $("dz").value = d && !d.u ? d.z : "";
+  S.fc = has ? palColor(k) : COLORS[0]; renderSwatches();
 }
+function renderSwatches() {
+  const box = $("dcol"); box.innerHTML = "";
+  COLORS.forEach(c => { const b = document.createElement("button"); b.className = "sw" + (c === S.fc ? " on" : ""); b.style.background = c; b.setAttribute("aria-label", "Färg " + c); b.setAttribute("aria-pressed", c === S.fc);
+    b.onclick = () => { S.fc = c; S.formDirty = true; renderSwatches(); }; box.appendChild(b); });
+}
+["dn", "dx", "dy", "dz"].forEach(id => $(id).addEventListener("input", () => { S.formDirty = true; }));
+$("dt").onchange = () => { // byt typ: ett standardnamn ("Pall 3") följer med ("Back 3")
+  S.formDirty = true; const t = $("dt").value, m = $("dn").value.trim().match(/^(Pall|Back) (\d+)$/); if (m) $("dn").value = `${typeName(t)} ${m[2]}`;
+};
 $("newpall2").onclick = () => newPal();
 $("sdims").onclick = async () => {
-  const v = ["dx", "dy", "dz"].map(id => parseInt($(id).value, 10)), name = $("dn").value.trim().slice(0, 40);
+  const v = ["dx", "dy", "dz"].map(id => parseInt($(id).value, 10)), name = $("dn").value.trim().slice(0, 40), t = $("dt").value, c = S.fc || COLORS[0];
   if (v.some(n => !(n >= 1 && n <= 99))) return toast("Ange tal mellan 1 och 99 i alla tre rutor", 3000);
-  if (!name) return toast("Skriv ett namn på pallen", 2500);
+  if (!name) return toast("Skriv ett namn", 2500);
   const size = { x: v[0], y: v[1], z: v[2] };
-  if (!S.pals.length) { // första pallen: lås som skannats utan pallstorlek får platser i skanningsordning
-    S.pals = [{ n: name, ...size }];
+  if (!S.pals.length) { // första pallen/backen: lås som skannats utan storlek får platser i skanningsordning
+    S.pals = [{ id: 0, n: name, ...size, c, t }];
     const un = S.scans.filter(r => r.slot == null).sort((p, q) => new Date(p.scanned_at) - new Date(q.scanned_at)), up = []; let k = 1, s = 0;
-    for (const r of un) { if (s >= capOf(k)) { k++; s = 0; if (k > S.pals.length) S.pals.push({ n: `Pall ${k}`, ...size }); } up.push({ ...r, slot: (k - 1) * STRIDE + s++ }); }
+    for (const r of un) { if (s >= capOf(k)) { k++; s = 0; if (k > S.pals.length) { const id = nextId(); S.pals.push({ id, n: `${typeName(t)} ${k}`, ...size, c: COLORS[id % COLORS.length], t }); } } up.push({ ...r, slot: base(k) + s++ }); }
     if (!(await savePals())) { S.pals = []; return; }
     if (up.length) { const { error } = await db.from("scans").upsert(up); if (error) return toast(hint(error), 5000); }
-    toast("Pallen sparad"); return load();
+    S.formDirty = false; toast(`${name} sparad`); return load();
   }
   const k = (S.pall || 0) + 1, d = palAt(k), on = S.scans.filter(r => r.slot != null && pallOf(r.slot) === k), cap = size.x * size.y * size.z;
-  const changed = d.x !== size.x || d.y !== size.y || d.z !== size.z;
+  const changed = !d.u && (d.x !== size.x || d.y !== size.y || d.z !== size.z);
   if (changed && on.some(r => r.slot % STRIDE >= cap)) return toast(`${palName(k)} har lås på platser som inte ryms i den nya storleken – flytta dem först`, 5000);
-  if (changed && on.length && !(await dialog({ err: 1, title: `Ändra storlek på ${palName(k)}?`, text: `${on.length} lås står på ${palName(k)}. Med ny storlek räknas deras platser om i samma ordning som de fylldes, så de får nya koordinater (X, Y, plan) – även för andra i projektet. Andra pallar påverkas inte.`, yes: "Ändra ändå" }))) return;
+  if (changed && on.length && !(await dialog({ err: 1, title: `Ändra storlek på ${palName(k)}?`, text: `${on.length} lås står på ${palName(k)}. Med ny storlek räknas deras platser om i samma ordning som de fylldes, så de får nya koordinater (X, Y, plan) – även för andra i projektet. Andra ${word(true)} påverkas inte.`, yes: "Ändra ändå" }))) return;
   const before = S.pals.map(x => ({ ...x }));
-  while (S.pals.length < k) S.pals.push({ ...d, n: `Pall ${S.pals.length + 1}` });
-  S.pals[k - 1] = { n: name, ...size };
+  S.pals[k - 1] = { ...d, n: name, ...size, c, t }; delete S.pals[k - 1].u;
   if (!(await savePals())) { S.pals = before; return; }
   if (changed && S.next != null && pallOf(S.next) === k) setNext(null); // en vald plats för nästa lås betyder något annat med ny storlek
-  toast(`${name} sparad`); load();
+  S.formDirty = false; V.skey = ""; toast(`${name} sparad`); load();
 };
+$("delpal").onclick = () => delPal((S.pall || 0) + 1);
+async function delPal(k) { // radera pall/back, med låsen på den
+  if (!S.pals[k - 1]) return;
+  const name = palName(k), id = S.pals[k - 1].id, b = base(k), on = S.scans.filter(r => r.slot != null && pallOf(r.slot) === k).length;
+  if (!(await dialog({ err: 1, title: `Radera ${name}?`, text: on ? `${name} har ${on} lås. Raderas den raderas också alla ${on} lås på den – för alla i projektet. Det går inte att ångra.` : `${name} är tom. Den tas bort för alla i projektet.`, yes: `Radera ${name}` }))) return;
+  if (on && !(await dialog({ err: 1, title: "Är du helt säker?", text: `${on} lås och ${name} raderas permanent. Vill du spara listan först: tryck Avbryt och ladda ner den under Lista.`, yes: `Ja, radera ${name} och ${on} lås` }))) return;
+  const { error } = await db.from("scans").delete().eq("project_code", S.code).gte("slot", b).lt("slot", b + STRIDE); // även lås som någon precis lagt dit
+  if (error) return toast("Kunde inte radera låsen: " + error.message, 5000);
+  const actId = S.pals[(S.act || 1) - 1] && S.pals[(S.act || 1) - 1].id, before = S.pals.slice();
+  S.pals.splice(k - 1, 1); if (!(await savePals())) { S.pals = before; return toast("Låsen raderades men inte " + name + " – försök igen", 5000); }
+  if (S.next != null && Math.floor(S.next / STRIDE) === id) setNext(null);
+  if (S.cursor != null && Math.floor(S.cursor / STRIDE) === id) setCursor(null);
+  const ai = S.pals.findIndex(d => d.id === actId); if (S.pals.length) setAct(ai >= 0 ? ai + 1 : 1);
+  S.pall = Math.max(0, Math.min(k - 1, S.pals.length) - 1); S.hit = null; S.hitCell = null; S.formDirty = false;
+  if (S.ws && S.ws.k === "b" && S.ws.id === id) S.ws = null;
+  toast(`${name}${on ? ` och ${on} lås` : ""} raderad`, 3500); load();
+}
 $("q").oninput = () => {
   const q = $("q").value.trim(), res = $("qres"); res.innerHTML = ""; $("qinfo").textContent = ""; S.hit = null;
   if (!q) return renderPall();
@@ -1316,15 +1406,21 @@ function resize() {
 
 // ----- bygg scenen -----
 function buildStatic() { // pall, golv, axlar (byggs om vid ny storlek/tema)
-  const { x: X, y: Y, z: Z } = S.dims, dark = darkQ.matches, key = [X, Y, Z, dark ? 1 : 0].join();
+  const { x: X, y: Y, z: Z } = S.dims, dark = darkQ.matches, back = palType((S.pall || 0) + 1) === "back", key = [X, Y, Z, dark ? 1 : 0, back ? "b" : "p"].join();
   if (V.skey === key) return; V.skey = key; V.dark = dark; disposeTree(V.stat);
   const st = V.stat, W = X + .7, D = Y + .7, wd = n => V.wood[(n * 5 + 1) % 3];
   const add = (w, h, d, x, y, z, m) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); o.castShadow = o.receiveShadow = true; o.userData.keepMat = true; st.add(o); };
   const n = Math.max(5, Math.ceil(D / .95)), bw = D / n, gap = Math.min(.14, bw * .22);
-  for (let i = 0; i < n; i++) add(W, .07, bw - gap, 0, -.035, -D / 2 + bw * (i + .5), wd(i));
-  const bs = clamp(Math.min(W, D) * .12, .35, .7), xs = [-(W / 2 - bs / 2), 0, W / 2 - bs / 2], zs = [-(D / 2 - bs / 2), 0, D / 2 - bs / 2];
-  xs.forEach((x, a) => zs.forEach((z, b) => add(bs, .16, bs, x, -.15, z, wd(a + b * 3 + 2))));
-  zs.forEach((z, b) => add(W, .06, bs, 0, -.26, z, wd(b + 7)));
+  if (back) { // plastback: botten och genomskinliga väggar
+    if (!V.plast) { V.plast = new THREE.MeshStandardMaterial({ color: 0x4f6b8a, roughness: .55, metalness: 0 }); V.plastWall = new THREE.MeshStandardMaterial({ color: 0x6f8fb3, roughness: .5, transparent: true, opacity: .22, depthWrite: false }); }
+    const Hh = Z * FP + .15, t = .07; add(W, .1, D, 0, -.05, 0, V.plast);
+    for (const [w, d, x, z] of [[W, t, 0, -D / 2], [W, t, 0, D / 2], [t, D, -W / 2, 0], [t, D, W / 2, 0]]) { add(w, Hh, d, x, Hh / 2, z, V.plastWall); add(w, .06, d, x, Hh, z, V.plast); }
+  } else {
+    for (let i = 0; i < n; i++) add(W, .07, bw - gap, 0, -.035, -D / 2 + bw * (i + .5), wd(i));
+    const bs = clamp(Math.min(W, D) * .12, .35, .7), xs = [-(W / 2 - bs / 2), 0, W / 2 - bs / 2], zs = [-(D / 2 - bs / 2), 0, D / 2 - bs / 2];
+    xs.forEach((x, a) => zs.forEach((z, b) => add(bs, .16, bs, x, -.15, z, wd(a + b * 3 + 2))));
+    zs.forEach((z, b) => add(W, .06, bs, 0, -.26, z, wd(b + 7)));
+  }
   // golv: mjuk skiva + skugga
   const GR = Math.hypot(W, D) * .95 + 3, c = document.createElement("canvas"); c.width = c.height = 256; const g = c.getContext("2d");
   const col = dark ? "44,51,60" : "226,231,238", gr = g.createRadialGradient(128, 128, 0, 128, 128, 128);
@@ -1345,7 +1441,8 @@ function buildStatic() { // pall, golv, axlar (byggs om vid ny storlek/tema)
   V.sun.position.set(-R * .5, R * 2.2, R * .9); V.sun.target.position.set(0, Z * FP * .4, 0); V.sun.target.updateMatrixWorld();
 }
 function buildLocks(cells) { // alla lås (byggs om vid ändring/val)
-  const { x: X, y: Y, z: Z } = S.dims, g = V.dyn, lift = .12, ghosts = X * Y <= 900;
+  const { x: X, y: Y, z: Z } = S.dims, g = V.dyn, lift = .12, ghosts = X * Y <= 900, col = new THREE.Color(palColor((S.pall || 0) + 1));
+  V.mOcc.color.copy(col); V.mDim.color.copy(col).lerp(new THREE.Color(0xffffff), .45); // låsen får pallens/backens färg
   while (g.children.length) g.remove(g.children[0]);
   if (V.cache.size > 600) { V.cache.forEach(m => { m.map.dispose(); m.dispose(); }); V.cache.clear(); }
   V.pick = []; V.hitPos = null;
@@ -1482,7 +1579,7 @@ function renderGrid(cells, X, Y) {
   let h = `<div class="mut" style="margin-bottom:6px">3D-vyn kunde inte startas – visar enkel rutnätsvy av plan ${f}.</div><div class="tg" style="grid-template-columns:repeat(${X},1fr);font-size:${fs}px">`;
   for (let j = Y - 1; j >= 0; j--) for (let i = 0; i < X; i++) {
     const r = cells[`${i},${j},${f - 1}`];
-    h += r ? `<div class="tc ${r.id === S.hit ? "hit" : "occ"}" data-id="${r.id}" title="${esc(r.serial)}">${esc(r.serial.length > 6 ? "…" + r.serial.slice(-5) : r.serial)}</div>` : `<div class="tc" data-cell="${i},${j},${f - 1}"></div>`;
+    h += r ? `<div class="tc ${r.id === S.hit ? "hit" : "occ"}" data-id="${r.id}" title="${esc(r.serial)}"${r.id === S.hit ? "" : ` style="background:${palColor((S.pall || 0) + 1)}"`}>${esc(r.serial.length > 6 ? "…" + r.serial.slice(-5) : r.serial)}</div>` : `<div class="tc" data-cell="${i},${j},${f - 1}"></div>`;
   }
   $("palmsg").innerHTML = h + `</div>`;
 }
@@ -1499,17 +1596,20 @@ function renderMap() {
   box.innerHTML = "";
   for (let k = 1; k <= n; k++) {
     const d = palAt(k), cap = capOf(k), c = cnt[k] || 0, per = d.x * d.y, t = document.createElement("button");
-    t.className = "ptile" + (k === (S.pall || 0) + 1 ? " cur" : "") + (c >= cap ? " full" : ""); t.setAttribute("aria-label", `Visa ${palName(k)}: ${c} av ${cap} lås`);
+    t.className = "ptile" + (k === (S.pall || 0) + 1 ? " cur" : "") + (cap && c >= cap ? " full" : ""); t.setAttribute("aria-label", `Visa ${palName(k)}: ${c} av ${cap} lås`);
     let bars = ""; const zs = d.z <= 8 ? Array.from({ length: d.z }, (_, i) => d.z - i) : null; // högsta planet överst, som pallen står
-    if (zs) zs.forEach(z => { const f = (cnt[`${k}|${z}`] || 0) / per; bars += `<div class="pbar" title="Plan ${z}: ${cnt[`${k}|${z}`] || 0} av ${per}"><span style="width:${(f * 100).toFixed(1)}%"></span></div>`; });
-    else bars = `<div class="pbar"><span style="width:${(c / cap * 100).toFixed(1)}%"></span></div>`;
-    t.innerHTML = `<div class="pth"><b></b>${k === (S.act || 1) ? '<span class="badge on">Skannas hit</span>' : ""}</div><div class="pstack">${bars}</div><div class="mut"><span class="pc"></span> · ${d.x}×${d.y}×${d.z}</div>`;
-    t.querySelector("b").textContent = palName(k); t.querySelector(".pc").textContent = c >= cap ? `Full (${cap})` : `${c} av ${cap}`;
+    const col = palColor(k);
+    if (zs) zs.forEach(z => { const f = (cnt[`${k}|${z}`] || 0) / per; bars += `<div class="pbar" title="Plan ${z}: ${cnt[`${k}|${z}`] || 0} av ${per}"><span style="width:${(f * 100).toFixed(1)}%;background:${col}"></span></div>`; });
+    else bars = `<div class="pbar"><span style="width:${(c / cap * 100).toFixed(1)}%;background:${col}"></span></div>`;
+    t.style.borderLeft = `6px solid ${col}`;
+    t.innerHTML = `<div class="pth"><b></b>${k === (S.act || 1) ? '<span class="badge on">Skannas hit</span>' : ""}</div><div class="pstack">${bars}</div><div class="mut"><span class="pc"></span>${d.u ? "" : ` · ${d.x}×${d.y}×${d.z}`}${palType(k) === "back" ? " · back" : ""}${esc(whTxt(k))}</div>`;
+    t.querySelector("b").textContent = palName(k); t.querySelector(".pc").textContent = !cap ? "Storlek väljs vid första låset" : c >= cap ? `Full (${cap})` : `${c} av ${cap}`;
     t.onclick = () => { S.pall = k - 1; S.hit = null; S.hitCell = null; S.floor = 0; $("q").value = ""; $("qres").innerHTML = ""; $("qinfo").textContent = ""; renderPall(); $("pallnav").closest(".card").scrollIntoView({ behavior: "smooth", block: "start" }); };
     box.appendChild(t);
   }
-  const add = document.createElement("button"); add.className = "ptile add"; add.innerHTML = '<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Ny pall</span>'; add.onclick = () => newPal(); box.appendChild(add);
-  const un = S.scans.filter(r => r.slot == null).length; $("mapinfo").textContent = (un ? `${un} lås saknar plats. ` : "") + "Staplarna visar hur fulla planen är, högsta planet överst. Tryck på en pall för att visa den.";
+  const add = document.createElement("button"); add.className = "ptile add"; add.innerHTML = `<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Ny ${word()}</span>`; add.onclick = () => newPal(); box.appendChild(add);
+  $("maptitle").textContent = `Alla ${word(true)}`;
+  const un = S.scans.filter(r => r.slot == null).length; $("mapinfo").textContent = (un ? `${un} lås saknar plats. ` : "") + `Staplarna visar hur fulla planen är, högsta planet överst. Tryck på en ${word()} för att visa den.`;
 }
 // ----- huvudfunktion -----
 function renderPall() {
@@ -1526,8 +1626,8 @@ function renderPall() {
   used.forEach(r => { const p = pos(r.slot); if (p.p - 1 !== S.pall) return; cells[`${p.x - 1},${p.y - 1},${p.z - 1}`] = r; fc[p.z - 1]++; cnt++; if (r.slot > lastSlot) { lastSlot = r.slot; lastZ = p.z; } });
   if (S.view === "top" && !S.floor) S.floor = lastZ; // fågelperspektiv: börja på planet du fyller just nu
   if (S.hit) { const hr = S.scans.find(r => r.id === S.hit), hp = hr && pos(hr.slot); if (!hp || hp.p - 1 !== S.pall) S.hit = null; }
-  const nb = (id, items, cur, fn) => { const n = $(id); n.innerHTML = ""; items.forEach(([lab, v]) => { const b = document.createElement("button"); b.textContent = lab; b.className = v === cur ? "" : "sec"; b.onclick = () => fn(v); n.appendChild(b); }); };
-  nb("pallnav", np > 1 ? Array.from({ length: np }, (_, i) => [palName(i + 1), i]) : [], S.pall, v => { S.pall = v; renderPall(); });
+  const nb = (id, items, cur, fn, col) => { const n = $(id); n.innerHTML = ""; items.forEach(([lab, v]) => { const b = document.createElement("button"); b.textContent = lab; b.className = v === cur ? "" : "sec"; if (col) b.style.boxShadow = `inset 5px 0 0 ${col(v)}`; b.onclick = () => fn(v); n.appendChild(b); }); };
+  nb("pallnav", np > 1 ? Array.from({ length: np }, (_, i) => [palName(i + 1), i]) : [], S.pall, v => { S.pall = v; renderPall(); }, v => palColor(v + 1));
   nb("floornav", [...(S.view === "3d" ? [["Alla plan", 0]] : []), ...Array.from({ length: Z }, (_, i) => [`Plan ${i + 1} · ${fc[i]}/${X * Y}`, i + 1])], S.floor, v => { S.floor = v; renderPall(); });
   $("vw3").className = S.view === "3d" ? "" : "sec"; $("vwT").className = S.view === "top" ? "" : "sec"; $("ctl3d").classList.toggle("hide", S.view !== "3d");
   $("palcnt").textContent = `${palName(S.pall + 1)} (${X} × ${Y} × ${Z}): ${cnt} av ${cap} platser upptagna.` + (S.floor ? ` Plan ${S.floor}: ${fc[S.floor - 1]} av ${X * Y}.` : "") + " " +
@@ -1535,6 +1635,395 @@ function renderPall() {
   msg.classList.add("hide"); box.classList.remove("hide");
   if (!initGL()) { box.classList.add("hide"); msg.classList.remove("hide"); $("ctl3d").classList.add("hide"); renderGrid(cells, X, Y); showSel(); return; }
   resize(); buildStatic(); buildLocks(cells); showSel(); kick();
+}
+
+// ---------- Lager: lokal, hyllställ, pallställ, pallar med pallkragar och blå backar (mått i meter) ----------
+// Sparas i projektets dims-fält bredvid pallarna: {"v":3,"p":[…],"w":{hw,hd,r:[hyllor/ställ],lp:[pallar]}}.
+// Backarna är vanliga backar i listan p (samma platsnummer och skanning som förut) med loc = var de står och s = mått [bredd, djup, höjd].
+const WH0 = () => ({ hw: 20, hd: 12, r: [], lp: [] });
+S.wh = WH0(); S.ws = null; S.wview = "2d"; S.wz = 1; S.wpan = [0, 0];
+const EUR = { w: 1.2, d: .8, h: .144 }, KRAGE = .2; // EUR-pall och en pallkrage (höjd)
+const BOXES = [[.6, .4, .12], [.6, .4, .22], [.6, .4, .32], [.4, .3, .12], [.4, .3, .22], [.3, .2, .12], [.3, .2, .17]]; // vanliga backmått
+const mm = v => Math.round(v * 1000), fm = v => String(Math.round(v * 100) / 100).replace(".", ",");
+const sizeTxt = s => `${mm(s[0])} × ${mm(s[1])} × ${mm(s[2])} mm`;
+const num = (v, a, b, d) => { v = parseFloat(String(v ?? "").replace(",", ".")); return isFinite(v) ? Math.min(b, Math.max(a, v)) : d; };
+const RT = { h: "Hyllställ", p: "Pallställ" };
+function boxExtra(d) { // backens plats i lagret (bevaras när pallarna läses in)
+  const o = {}; if (d.u) o.u = 1;
+  const l = d.loc; if (l && l.k === "r" && Number.isInteger(+l.r)) o.loc = { k: "r", r: +l.r, l: Math.max(0, Math.round(+l.l || 0)) }; else if (l && l.k === "p" && Number.isInteger(+l.p)) o.loc = { k: "p", p: +l.p };
+  if (Array.isArray(d.s) && d.s.length === 3) o.s = d.s.map((v, i) => num(v, .05, i === 2 ? 2 : 3, .3));
+  if (o.loc) o.o = +d.o || 0; return o;
+}
+function parseWh(w) {
+  const o = WH0(); if (!w || typeof w !== "object") return o;
+  o.hw = num(w.hw, 2, 500, 20); o.hd = num(w.hd, 2, 500, 12);
+  const ri = new Set(), li = new Set();
+  o.r = (Array.isArray(w.r) ? w.r : []).filter(r => r && Number.isInteger(r.id) && !ri.has(r.id) && ri.add(r.id)).map(r => ({ id: r.id, n: String(r.n || "Hylla").slice(0, 40), k: r.k === "p" ? "p" : "h", x: num(r.x, 0, 500, 1), y: num(r.y, 0, 500, 1), a: [0, 90, 180, 270].includes(r.a) ? r.a : 0, L: num(r.L, .3, 50, 2), D: num(r.D, .2, 5, .6), lv: Math.round(num(r.lv, 1, 20, 4)), h: num(r.h, .1, 5, .4), pb: Math.round(num(r.pb, 0, 5, 0)), ph: num(r.ph, .5, 5, 1.4) })).map(r => ({ ...r, pb: r.k === "h" ? Math.min(r.pb, r.lv - 1) : 0 }));
+  o.lp = (Array.isArray(w.lp) ? w.lp : []).filter(p => p && Number.isInteger(p.id) && !li.has(p.id) && li.add(p.id)).map(p => {
+    const l = p.loc || {}; return { id: p.id, n: String(p.n || "Pall").slice(0, 40), kr: Math.round(num(p.kr, 0, 10, 0)), o: +p.o || 0,
+      loc: l.k === "r" ? { k: "r", r: +l.r, l: Math.max(0, Math.round(+l.l || 0)) } : { k: "f", x: num(l.x, 0, 500, 1), y: num(l.y, 0, 500, 1), a: l.a === 90 ? 90 : 0 } }; });
+  return o;
+}
+const rackById = id => S.wh.r.find(r => r.id === id), lpById = id => S.wh.lp.find(p => p.id === id);
+const kOf = id => S.pals.findIndex(d => d.id === id) + 1; // backens nummer i listan (0 = finns inte)
+// Hyllställ kan ha pallplatser längst ner (pb st, höjd ph) med hyllplan ovanför; pallställ har bara pallplan
+const pbOf = r => r.k === "h" ? r.pb || 0 : 0;
+const palLv = (r, l) => r.k === "p" || l < pbOf(r); // planet är en pallplats (golv eller bom), inte ett hyllplan
+const levelZ = (r, l) => { if (r.k === "p") return l * r.h; const pb = pbOf(r), ph = r.ph || 1.4; return l < pb ? l * ph : (pb ? pb * ph : .08) + (l - pb) * r.h; }; // överkant på hyllplanet/bommen
+const lvH = (r, l) => l < r.lv - 1 ? levelZ(r, l + 1) - levelZ(r, l) - .04 : Math.max(palLv(r, l) ? r.ph || r.h : r.h, .6); // fri höjd på planet
+const rackTop = r => levelZ(r, r.lv - 1) + (palLv(r, r.lv - 1) ? .35 : .05);
+const lvName = (r, l) => palLv(r, l) ? (r.k === "h" ? "pallplats" : l ? "bom" : "golv") : "hyllplan";
+const bays = r => Math.max(1, Math.round(r.L / (r.k === "p" ? 2.7 : 1)));
+function rot(cx, cy, a, u, v) { const t = a * Math.PI / 180, c = Math.cos(t), s = Math.sin(t); return [cx + u * c - v * s, cy + u * s + v * c]; }
+const rackFp = r => { const q = r.a % 180, w = q ? r.D : r.L, h = q ? r.L : r.D; return { x: r.x - w / 2, y: r.y - h / 2, w, h }; };
+const lpFp = p => { const q = p.loc.a % 180, w = q ? EUR.d : EUR.w, h = q ? EUR.w : EUR.d; return { x: p.loc.x - w / 2, y: p.loc.y - h / 2, w, h }; };
+const hitFp = (a, b) => a.x < b.x + b.w - 1e-3 && b.x < a.x + a.w - 1e-3 && a.y < b.y + b.h - 1e-3 && b.y < a.y + a.h - 1e-3;
+const insideFp = f => f.x >= -1e-3 && f.y >= -1e-3 && f.x + f.w <= S.wh.hw + 1e-3 && f.y + f.h <= S.wh.hd + 1e-3;
+function floorFps(skip) { return [...S.wh.r.filter(r => r !== skip).map(rackFp), ...S.wh.lp.filter(p => p !== skip && p.loc.k === "f").map(lpFp)]; }
+function findSpot(w, h) { // första lediga golvyta (0,5 m-steg), annars mitten
+  const fs = floorFps(); for (let y = .3; y + h <= S.wh.hd; y += .5) for (let x = .3; x + w <= S.wh.hw; x += .5) { const f = { x, y, w, h }; if (!fs.some(g => hitFp(f, { x: g.x - .3, y: g.y - .3, w: g.w + .6, h: g.h + .6 }))) return [x + w / 2, y + h / 2]; }
+  return [S.wh.hw / 2, S.wh.hd / 2];
+}
+function packIn(items, L, D, H) { // ställ ut i ordning: längs bredden, sedan nästa rad bakåt, sedan nästa lager ovanpå
+  let u = 0, v = 0, row = 0, z = 0, lay = 0; const out = [];
+  for (const it of items) {
+    if (u > 0 && u + it.w > L + 1e-3) { v += row; u = 0; row = 0; }
+    if (v > 0 && v + it.d > D + 1e-3) { z += lay; u = 0; v = 0; row = 0; lay = 0; }
+    out.push({ ...it, u, v, z, over: u + it.w > L + 1e-3 || v + it.d > D + 1e-3 || z + it.h > H + 1e-3 });
+    u += it.w; row = Math.max(row, it.d); lay = Math.max(lay, it.h);
+  }
+  return out;
+}
+const boxS = d => Array.isArray(d.s) ? d.s : [.6, .4, .22];
+function whLayout() { // var allt står: {box: k -> {x,y,z,w,d,h,a,over}, lp: id -> {x,y,z,a,over,n}, lvl: "rack:plan" -> {n, over}}
+  const out = { box: new Map(), lp: new Map(), lvl: new Map() }, G = new Map(), put = (key, it) => { if (!G.has(key)) G.set(key, []); G.get(key).push(it); };
+  S.wh.lp.forEach(p => { if (p.loc.k === "r") put(`r:${p.loc.r}:${p.loc.l}`, { t: "lp", ref: p.id, w: EUR.d + .1, d: EUR.w - .12, h: EUR.h + p.kr * KRAGE, o: p.o || 0 }); });
+  S.pals.forEach((d, i) => { const l = d.loc; if (!l) return; const s = boxS(d), it = { t: "b", ref: i + 1, w: s[0], d: s[1], h: s[2], o: d.o || 0 }; put(l.k === "r" ? `r:${l.r}:${l.l}` : `p:${l.p}`, it); });
+  const srt = a => a.sort((p, q) => p.o - q.o || (p.t === "lp" ? -1 : 1) || p.ref - q.ref);
+  S.wh.r.forEach(r => { for (let l = 0; l < r.lv; l++) {
+    const its = srt(G.get(`r:${r.id}:${l}`) || []), H = lvH(r, l), z0 = levelZ(r, l), pk = packIn(its.map(it => it.t === "lp" ? { ...it, d: Math.min(it.d, r.D) } : it), r.L, r.D, H); // en pall får sticka ut framför ett grunt hyllställ
+    out.lvl.set(`${r.id}:${l}`, { n: its.length, over: pk.some(q => q.over) });
+    pk.forEach(q => { const [x, y] = rot(r.x, r.y, r.a, -r.L / 2 + q.u + q.w / 2, -r.D / 2 + q.v + q.d / 2);
+      if (q.t === "lp") out.lp.set(q.ref, { x, y, z: z0 + q.z, a: r.a + 90, over: q.over }); else out.box.set(q.ref, { x, y, z: z0 + q.z, w: q.w, d: q.d, h: q.h, a: r.a, over: q.over }); });
+  } });
+  S.wh.lp.forEach(p => { if (p.loc.k === "f") out.lp.set(p.id, { x: p.loc.x, y: p.loc.y, z: 0, a: p.loc.a, over: !insideFp(lpFp(p)) }); });
+  S.wh.lp.forEach(p => { const P = out.lp.get(p.id); if (!P) return; const its = srt(G.get(`p:${p.id}`) || []), pk = packIn(its, EUR.w, EUR.d, p.kr ? p.kr * KRAGE + .02 : 1.2);
+    P.n = its.length; P.bover = pk.some(q => q.over);
+    pk.forEach(q => { const [x, y] = rot(P.x, P.y, P.a, -EUR.w / 2 + q.u + q.w / 2, -EUR.d / 2 + q.v + q.d / 2); out.box.set(q.ref, { x, y, z: P.z + EUR.h + q.z, w: q.w, d: q.d, h: q.h, a: P.a, over: q.over }); }); });
+  return out;
+}
+function boxWhere(k) { // "Hylla A, plan 2" / "Pall 3 på Pallställ A, plan 1" / "Pall 3"
+  const d = S.pals[k - 1], l = d && d.loc; if (!l) return "";
+  if (l.k === "r") { const r = rackById(l.r); return r && l.l < r.lv ? `${r.n}, plan ${l.l + 1}` : ""; }
+  const p = lpById(l.p); if (!p) return ""; if (p.loc.k === "r") { const r = rackById(p.loc.r); return r ? `${p.n} på ${r.n}, plan ${p.loc.l + 1}` : p.n; } return p.n;
+}
+const whTxt = k => { const w = boxWhere(k); return w ? ` (${w})` : ""; };
+const lpWhere = p => { if (p.loc.k !== "r") return "på golvet"; const r = rackById(p.loc.r); return r ? `${r.n}, plan ${p.loc.l + 1}` : "på golvet"; };
+const lockCnt = () => { const c = {}; S.scans.forEach(r => { if (r.slot != null) { const k = pallOf(r.slot); c[k] = (c[k] || 0) + 1; } }); return c; };
+const isSel = (k, id) => S.ws && S.ws.k === k && S.ws.id === id;
+const sibs = l => S.pals.map((d, i) => ({ d, k: i + 1 })).filter(b => b.d.loc && b.d.loc.k === l.k && (l.k === "r" ? b.d.loc.r === l.r && b.d.loc.l === l.l : b.d.loc.p === l.p));
+const maxO = l => { const a = [...sibs(l).map(b => b.d.o || 0), ...(l.k === "r" ? S.wh.lp.filter(p => p.loc.k === "r" && p.loc.r === l.r && p.loc.l === l.l).map(p => p.o || 0) : [])]; return a.length ? Math.max(...a) + 1 : 0; };
+async function whSave() { const ok = await savePals(); if (!ok) await load(); else render(); return ok; }
+
+// ----- läge: enkelt (bara pallar/backar) eller lager -----
+const lmode = () => { try { const v = localStorage.getItem("lm_" + S.code); if (v) return v; } catch { } return S.wh.r.length || S.wh.lp.length ? "lager" : "enkel"; };
+function renderLm() {
+  const l = lmode() === "lager"; $("lmE").className = l ? "sec" : ""; $("lmL").className = l ? "" : "sec"; $("tLag").classList.toggle("hide", !l);
+  $("lminfo").textContent = l ? "Lagerläge: bygg lokalen med hyllor, pallställ och pallar, ställ ut backar och skanna in låsen i backarna." : "Enkelt läge: skanna bara in serienummer och lägg dem på pallar eller backar.";
+  if (!l && !$("vLag").classList.contains("hide")) tab("scan");
+}
+$("lmE").onclick = () => { try { localStorage.setItem("lm_" + S.code, "enkel"); } catch { } renderLm(); };
+$("lmL").onclick = () => { try { localStorage.setItem("lm_" + S.code, "lager"); } catch { } renderLm(); tab("lag"); };
+
+// ----- skapa -----
+function nameFree(stem, list, letters) { const names = new Set(list.map(x => String(x.n).toLowerCase())); for (let i = 0; i < 500; i++) { const t = letters ? (i < 26 ? String.fromCharCode(65 + i) : `${String.fromCharCode(65 + Math.floor(i / 26) - 1)}${String.fromCharCode(65 + i % 26)}`) : i + 1, n = `${stem} ${t}`; if (!names.has(n.toLowerCase())) return n; } return stem; }
+async function addRack(k) {
+  const r = k === "p" ? { L: 2.7, D: 1.1, lv: 3, h: 1.6 } : { L: 2, D: .6, lv: 5, h: .4 }, id = S.wh.r.reduce((m, x) => Math.max(m, x.id + 1), 0);
+  const [x, y] = findSpot(r.L, r.D), n = nameFree(k === "p" ? "Pallställ" : "Hylla", S.wh.r, true);
+  S.wh.r.push({ id, n, k, x, y, a: 0, ...r }); S.ws = { k: "r", id }; if (await whSave()) toast(`${n} tillagd – dra den till rätt plats`, 3000);
+}
+async function addLp(loc) {
+  const id = S.wh.lp.reduce((m, x) => Math.max(m, x.id + 1), 0), n = nameFree("Pall", [...S.wh.lp, ...S.pals]);
+  if (!loc) { const [x, y] = findSpot(EUR.w, EUR.d); loc = { k: "f", x, y, a: 0 }; }
+  S.wh.lp.push({ id, n, kr: 2, o: loc.k === "r" ? maxO(loc) : 0, loc }); S.ws = { k: "lp", id }; if (await whSave()) toast(`${n} tillagd`, 2500);
+}
+async function addBox(loc) {
+  const id = nextId(), n = nameFree("Back", S.pals), last = [...S.pals].reverse().find(d => d.loc && d.s);
+  S.pals.push({ id, n, x: 1, y: 1, z: 1, u: 1, c: COLORS[0], t: "back", loc, s: last ? last.s.slice() : [.6, .4, .22], o: maxO(loc) });
+  S.ws = { k: "b", id }; if (await whSave()) { toast(`${n} tillagd. Hur många lås som får plats väljer du när du skannar in det första.`, 4000); if (S.pals.length === 1) initAct(); }
+}
+$("addH").onclick = () => addRack("h"); $("addP").onclick = () => addRack("p"); $("addL").onclick = () => addLp();
+for (const id of ["hw", "hd"]) $(id).onchange = async () => { const v = num($(id).value, 2, 500, null); if (v == null) return renderWh(); S.wh[id] = v; await whSave(); };
+
+// ----- lås-storlek för en back: väljs när det första låset skannas -----
+async function ensureCap(k) {
+  const d = S.pals[k - 1]; if (!d || !d.u) return true;
+  const same = S.pals.find(x => !x.u && x.loc && x.s && d.s && x.s.join() === d.s.join()), sug = same ? `${same.x} × ${same.y} × ${same.z}` : "4 × 3 × 1";
+  for (;;) {
+    const v = await dialog({ title: `Hur många lås får plats i ${d.n}?`, text: `Ange antal lås längs bredden × längs djupet × antal lager${d.s ? ` (backen är ${sizeTxt(d.s)})` : ""}, t.ex. 6 × 4 × 2. Låsen fylls sedan på i ordning i backen. Storleken kan ändras under fliken ${Cap(word())} så länge backen är tom.`, yes: "Spara och skanna", value: sug });
+    if (v == null) return false;
+    const n = (v.match(/\d+/g) || []).map(Number); if (n.length === 2) n.push(1);
+    const sz = { x: n[0], y: n[1], z: n[2] }; if (n.length !== 3 || !okSize(sz)) { toast("Skriv tre tal mellan 1 och 99, t.ex. 6 × 4 × 2", 3500); continue; }
+    const before = { ...d }; Object.assign(d, sz); delete d.u;
+    if (!(await savePals())) { S.pals[k - 1] = before; return false; }
+    V.skey = ""; render(); toast(`${d.n}: ${sz.x * sz.y * sz.z} lås (${sz.x} × ${sz.y} × ${sz.z})`, 2500); return true;
+  }
+}
+
+// ----- planritning (ovanifrån) -----
+const W2 = { drag: null };
+function renderPlan() {
+  const svg = $("whsvg"), W = S.wh.hw, D = S.wh.hd, lay = S.wlay, z = S.wz, vw = (W + 1) / z, vh = (D + 1) / z;
+  S.wpan = [clamp(S.wpan[0], 0, W + 1 - vw), clamp(S.wpan[1], 0, D + 1 - vh)];
+  svg.setAttribute("viewBox", `${(-.5 + S.wpan[0]).toFixed(3)} ${(-.5 + S.wpan[1]).toFixed(3)} ${vw.toFixed(3)} ${vh.toFixed(3)}`); svg.style.aspectRatio = `${W + 1} / ${D + 1}`;
+  const fs = vw / 30, step = W * D > 4000 ? 5 : 1, cnt = lockCnt();
+  let h = `<rect x="0" y="0" width="${W}" height="${D}" class="wf"/>`;
+  for (let x = step; x < W; x += step) h += `<line x1="${x}" y1="0" x2="${x}" y2="${D}" class="wg"/>`;
+  for (let y = step; y < D; y += step) h += `<line x1="0" y1="${y}" x2="${W}" y2="${y}" class="wg"/>`;
+  h += `<text x="${W / 2}" y="${-.25}" style="font-size:${fs * .8}px" fill-opacity=".7">${fm(W)} m</text><text x="${-.25}" y="${D / 2}" style="font-size:${fs * .8}px" transform="rotate(-90 ${-.25} ${D / 2})">${fm(D)} m</text>`;
+  const bad = (o, f) => !insideFp(f) || floorFps(o).some(g => hitFp(f, g)); // utanför lokalen eller krockar med något annat
+  S.wh.r.forEach(r => { const nb = bays(r), cls = `wr${r.k === "p" ? " p" : ""}${isSel("r", r.id) ? " s" : ""}${bad(r, rackFp(r)) ? " bad" : ""}`;
+    h += `<g data-k="r" data-id="${r.id}"><g transform="translate(${r.x} ${r.y}) rotate(${r.a})"><rect x="${-r.L / 2}" y="${-r.D / 2}" width="${r.L}" height="${r.D}" class="${cls}"/>`;
+    for (let b = 1; b < nb; b++) { const u = -r.L / 2 + r.L * b / nb; h += `<line x1="${u}" y1="${-r.D / 2}" x2="${u}" y2="${r.D / 2}" class="wb"/>`; }
+    h += `</g></g>`; });
+  S.wh.lp.forEach(p => { const P = lay.lp.get(p.id); if (!P) return; const fl = p.loc.k === "f", cls = `wp${isSel("lp", p.id) ? " s" : ""}${(fl && bad(p, lpFp(p))) || P.over ? " bad" : ""}`;
+    h += `<g data-k="lp" data-id="${p.id}"><rect x="${P.x - EUR.w / 2}" y="${P.y - EUR.d / 2}" width="${EUR.w}" height="${EUR.d}" transform="rotate(${P.a} ${P.x} ${P.y})" class="${cls}" fill-opacity="${P.n ? .55 : 1}"/></g>`; });
+  lay.box.forEach((B, k) => { const d = S.pals[k - 1], c = cnt[k] || 0;
+    h += `<rect data-k="b" data-id="${d.id}" x="${B.x - B.w / 2 + .01}" y="${B.y - B.d / 2 + .01}" width="${Math.max(.02, B.w - .02)}" height="${Math.max(.02, B.d - .02)}" transform="rotate(${B.a} ${B.x} ${B.y})" class="wx${c ? "" : " e"}${isSel("b", d.id) ? " s" : ""}${B.over ? " bad" : ""}"/>`; });
+  S.wh.r.forEach(r => { const lv = [...Array(r.lv).keys()].reduce((n, l) => n + (lay.lvl.get(`${r.id}:${l}`) || { n: 0 }).n, 0), big = Math.min(fs, Math.max(r.L, r.D) / Math.max(4, r.n.length * .62));
+    h += `<text x="${r.x}" y="${r.y - big * .45}" style="font-size:${big}px;font-weight:700">${esc(r.n)}</text><text x="${r.x}" y="${r.y + big * .6}" style="font-size:${big * .72}px" fill-opacity=".75">${r.lv} plan · ${lv} st</text>`; });
+  S.wh.lp.forEach(p => { const P = lay.lp.get(p.id); if (P && p.loc.k === "f") h += `<text x="${P.x}" y="${P.y}" style="font-size:${Math.min(fs, .3)}px;font-weight:700">${esc(p.n)}</text>`; });
+  svg.innerHTML = h;
+}
+(function bindPlan() {
+  const svg = $("whsvg");
+  const sc = () => { const m = svg.getScreenCTM(); return m ? 1 / m.a : .05; }; // meter per skärmpixel
+  svg.addEventListener("pointerdown", e => {
+    if (W2.drag) return; const g = e.target.closest("[data-k]"), k = g && g.dataset.k, id = g ? +g.dataset.id : null;
+    const o = k === "r" ? rackById(id) : k === "lp" ? lpById(id) : null, mov = o && (k === "r" || o.loc.k === "f");
+    W2.drag = { pid: e.pointerId, sx: e.clientX, sy: e.clientY, k, id, moved: false, o0: mov ? (k === "r" ? [o.x, o.y] : [o.loc.x, o.loc.y]) : null, pan0: [...S.wpan], s: sc() };
+    try { svg.setPointerCapture(e.pointerId); } catch { }
+  });
+  svg.addEventListener("pointermove", e => {
+    const d = W2.drag; if (!d || d.pid !== e.pointerId) return;
+    const dx = (e.clientX - d.sx) * d.s, dy = (e.clientY - d.sy) * d.s; if (!d.moved && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < 6) return; d.moved = true;
+    if (d.o0) { const o = d.k === "r" ? rackById(d.id) : lpById(d.id); if (!o) return; const f = d.k === "r" ? rackFp(o) : lpFp(o), sn = v => Math.round(v * 20) / 20;
+      const x = clamp(sn(d.o0[0] + dx), f.w / 2, Math.max(f.w / 2, S.wh.hw - f.w / 2)), y = clamp(sn(d.o0[1] + dy), f.h / 2, Math.max(f.h / 2, S.wh.hd - f.h / 2));
+      if (d.k === "r") { o.x = x; o.y = y; } else { o.loc.x = x; o.loc.y = y; } S.ws = { k: d.k, id: d.id }; S.wlay = whLayout(); renderPlan(); }
+    else if (S.wz > 1) { S.wpan = [d.pan0[0] - dx, d.pan0[1] - dy]; renderPlan(); }
+  });
+  const up = async e => {
+    const d = W2.drag; if (!d || d.pid !== e.pointerId) return; W2.drag = null;
+    if (d.moved && d.o0) { await whSave(); return; }
+    if (!d.moved && e.type === "pointerup") { S.ws = d.k ? { k: d.k, id: d.id } : null; renderWh(); if (S.ws) $("whsel").scrollIntoView({ behavior: "smooth", block: "nearest" }); }
+  };
+  svg.addEventListener("pointerup", up); svg.addEventListener("pointercancel", up);
+  svg.addEventListener("wheel", e => { if (!e.ctrlKey && !e.metaKey) return; e.preventDefault(); wZoom(e.deltaY < 0 ? 1.25 : .8); }, { passive: false });
+})();
+function wZoom(f) { const W = S.wh.hw + 1, D = S.wh.hd + 1, z0 = S.wz, z1 = clamp(z0 * f, 1, 8), c = [S.wpan[0] + W / z0 / 2, S.wpan[1] + D / z0 / 2]; S.wz = z1; S.wpan = [c[0] - W / z1 / 2, c[1] - D / z1 / 2]; renderPlan(); }
+$("wzin").onclick = () => wZoom(1.5); $("wzout").onclick = () => wZoom(1 / 1.5);
+$("wv2").onclick = () => { S.wview = "2d"; renderWh(); }; $("wv3").onclick = () => { S.wview = "3d"; renderWh(); };
+
+// ----- panel för det valda (hylla/ställ, pall eller back) -----
+const lkey = l => l ? (l.k === "r" ? `r:${l.r}:${l.l}` : l.k === "p" ? `p:${l.p}` : "f") : "";
+const keyLoc = s => { const a = String(s).split(":"); return a[0] === "r" ? { k: "r", r: +a[1], l: +a[2] } : a[0] === "p" ? { k: "p", p: +a[1] } : null; };
+function opts(list, cur) { return list.map(([v, t]) => `<option value="${esc(v)}"${v === cur ? " selected" : ""}>${esc(t)}</option>`).join(""); }
+const rackLevels = pal => S.wh.r.flatMap(r => Array.from({ length: r.lv }, (_, l) => l).filter(l => !pal || palLv(r, l)).map(l => [`r:${r.id}:${l}`, `${r.n}, plan ${l + 1}${palLv(r, l) && r.k === "h" ? " (pallplats)" : ""}`])); // pal = bara pallplatser
+function chipBox(k, cnt) { const d = S.pals[k - 1], B = S.wlay.box.get(k), c = cnt[k] || 0, cap = capOf(k); return `<button class="pl sm${isSel("b", d.id) ? "" : " sec"}" data-b="${d.id}">${B && B.over ? "⚠ " : ""}${esc(d.n)} · ${d.u ? "ny" : `${c}/${cap}`}</button>`; }
+function chipLp(p) { const P = S.wlay.lp.get(p.id); return `<button class="pl sm${isSel("lp", p.id) ? "" : " sec"}" data-p="${p.id}">${P && (P.over || P.bover) ? "⚠ " : ""}${esc(p.n)} · ${p.kr} krag${p.kr === 1 ? "e" : "ar"}</button>`; }
+function levelItems(r, l, cnt) { const its = []; S.wh.lp.filter(p => p.loc.k === "r" && p.loc.r === r.id && p.loc.l === l).forEach(p => its.push([p.o || 0, chipLp(p) + sibs({ k: "p", p: p.id }).sort((a, b) => (a.d.o || 0) - (b.d.o || 0)).map(b => chipBox(b.k, cnt)).join("")])); sibs({ k: "r", r: r.id, l }).forEach(b => its.push([b.d.o || 0, chipBox(b.k, cnt)])); return its.sort((a, b) => a[0] - b[0]).map(x => x[1]).join(""); }
+function renderSel() {
+  const box = $("whsel"), ws = S.ws, ae = document.activeElement;
+  const key = ws ? ws.k + ws.id : ""; if (ae && ae.id && ae.id.startsWith("ws_") && box.dataset.key === key) return; // skriv inte över medan du ändrar
+  box.dataset.key = key; const cnt = lockCnt();
+  const o = !ws ? null : ws.k === "r" ? rackById(ws.id) : ws.k === "lp" ? lpById(ws.id) : S.pals[kOf(ws.id) - 1];
+  if (!o) { S.ws = null; box.innerHTML = `<div class="mut">Tryck på en hylla, ett pallställ, en pall eller en back i planritningen, i 3D eller i listan nedan för att ändra den, ställa ut backar eller skanna in lås.</div>`; return; }
+  let h = "";
+  if (ws.k === "r") {
+    const r = o, lay = S.wlay;
+    h = `<h4>${esc(r.n)} <span class="mut">${RT[r.k]}</span></h4>
+      <div class="row"><label class="mut" style="flex:2">Namn<input type="text" id="ws_n" maxlength="40" value="${esc(r.n)}"></label><label class="mut">Typ<select id="ws_k">${opts([["h", "Hyllställ"], ["p", "Pallställ"]], r.k)}</select></label></div>
+      <div class="row"><label class="mut">Längd (m)<input type="text" id="ws_L" inputmode="decimal" value="${fm(r.L)}"></label><label class="mut">Djup (m)<input type="text" id="ws_D" inputmode="decimal" value="${fm(r.D)}"></label></div>
+      <div class="row"><label class="mut">${r.k === "h" ? "Antal hyllplan" : "Antal plan"}<input type="text" id="ws_lv" inputmode="numeric" value="${r.lv - pbOf(r)}"></label><label class="mut">Höjd per ${r.k === "h" ? "hyllplan" : "plan"} (m)<input type="text" id="ws_h" inputmode="decimal" value="${fm(r.h)}"></label></div>
+      ${r.k === "h" ? `<div class="row"><label class="mut">Pallplatser längst ner<select id="ws_pb">${opts([0, 1, 2, 3].map(n => [String(n), n ? `${n} (pall${n > 1 ? "ar på varandra" : ""} under hyllan)` : "Inga"]), String(pbOf(r)))}</select></label>${pbOf(r) ? `<label class="mut">Höjd per pallplats (m)<input type="text" id="ws_ph" inputmode="decimal" value="${fm(r.ph || 1.4)}"></label>` : ""}</div>` : ""}
+      <div class="row"><button class="sec" id="ws_rot"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>Vrid 90°</button><button class="bad fit" id="ws_del"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>Radera</button></div>
+      <div class="mut">Står ${fm(r.x)} m från vänster och ${fm(r.y)} m uppifrån (mitten). Dra i planritningen för att flytta. ${r.k === "p" ? "Plan 1 är golvet, högre plan är bommar." : pbOf(r) ? `Plan 1${pbOf(r) > 1 ? `–${pbOf(r)}` : ""} är pallplatser (pall på golvet under hyllan), hyllplanen börjar ovanför.` : "Plan 1 är nedersta hyllplanet."}</div>`;
+    for (let l = r.lv - 1; l >= 0; l--) { const lv = lay.lvl.get(`${r.id}:${l}`) || { n: 0 };
+      h += `<div class="lvl"><div class="row" style="margin:0"><b class="fit">Plan ${l + 1}</b><span class="mut">${lvName(r, l)} · ${fm(levelZ(r, l))} m upp${lv.over ? ' · <span class="warnx">Får inte plats – gör hyllan längre/djupare eller flytta något</span>' : ""}</span><button class="sec fit" style="padding:6px 10px" data-addb="r:${r.id}:${l}">+ Back</button>${palLv(r, l) ? `<button class="sec fit" style="padding:6px 10px" data-addp="${r.id}:${l}">+ Pall</button>` : ""}</div><div class="chips">${levelItems(r, l, cnt) || '<span class="mut">Tomt</span>'}</div></div>`; }
+  } else if (ws.k === "lp") {
+    const p = o, P = S.wlay.lp.get(p.id) || {}, onB = sibs({ k: "p", p: p.id }).sort((a, b) => (a.d.o || 0) - (b.d.o || 0));
+    h = `<h4>${esc(p.n)} <span class="mut">EUR-pall 1200 × 800 mm · ${esc(lpWhere(p))}</span></h4>
+      <div class="row"><label class="mut" style="flex:2">Namn<input type="text" id="ws_n" maxlength="40" value="${esc(p.n)}"></label><label class="mut">Plats<select id="ws_at">${opts([["f", "På golvet"], ...rackLevels(true), ...(p.loc.k === "r" && !rackLevels(true).some(x => x[0] === lkey(p.loc)) ? [[lkey(p.loc), lpWhere(p)]] : [])], lkey(p.loc))}</select></label></div>
+      <div class="row"><span class="fit mut">Pallkragar</span><button class="sec fit" id="ws_km" aria-label="En krage mindre">−</button><b class="fit" style="min-width:24px;text-align:center">${p.kr}</b><button class="sec fit" id="ws_kp" aria-label="En krage till">+</button><span class="mut">${p.kr ? `${mm(p.kr * KRAGE)} mm innerhöjd` : "inga kragar"}</span></div>
+      <div class="row">${p.loc.k === "f" ? `<button class="sec" id="ws_rot"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>Vrid 90°</button>` : ""}<button class="sec" data-addb="p:${p.id}">+ Back på pallen</button><button class="bad fit" id="ws_del"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>Radera</button></div>
+      ${P.over ? '<div class="warnx">Pallen får inte plats där den står.</div>' : ""}${P.bover ? '<div class="warnx">Backarna når över pallkragarna – lägg till en krage eller flytta en back.</div>' : ""}
+      <div class="chips">${onB.map(b => chipBox(b.k, cnt)).join("") || '<span class="mut">Inga backar på pallen ännu.</span>'}</div>`;
+  } else {
+    const d = o, k = kOf(d.id), B = S.wlay.box.get(k), c = cnt[k] || 0, cap = capOf(k), s = boxS(d), pre = BOXES.findIndex(b => b.join() === s.join());
+    const dests = [...rackLevels(), ...S.wh.lp.map(p => [`p:${p.id}`, `${p.n} (${lpWhere(p)})`]), ["", "Ingen plats i lagret"]];
+    h = `<h4><span class="dot" style="background:#2463c9"></span>${esc(d.n)} <span class="mut">${esc(boxWhere(k) || "ingen plats i lagret")}</span></h4>
+      <div class="row"><label class="mut" style="flex:2">Namn<input type="text" id="ws_n" maxlength="40" value="${esc(d.n)}"></label><label class="mut">Mått<select id="ws_s">${opts([...BOXES.map((b, i) => [String(i), sizeTxt(b)]), ...(pre < 0 ? [["x", sizeTxt(s)]] : []), ["c", "Egna mått…"]], pre < 0 ? "x" : String(pre))}</select></label></div>
+      <div class="row"><label class="mut">Står på<select id="ws_at">${opts(dests, lkey(d.loc))}</select></label></div>
+      ${d.loc ? `<div class="row"><button class="sec" id="ws_up">◀ Tidigare i raden</button><button class="sec" id="ws_dn">Senare i raden ▶</button></div>` : ""}
+      ${B && B.over ? '<div class="warnx">Backen får inte plats där – flytta den eller ändra hyllan/pallen.</div>' : ""}
+      <div class="mut" style="margin:6px 0">${d.u ? "Lås: storleken (hur många lås som får plats) väljs när du skannar in det första låset." : `Lås: ${c} av ${cap} (${d.x} × ${d.y} × ${d.z}).`}</div>
+      <div class="row"><button id="ws_scan"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 20h.01"/></svg>Skanna till ${esc(d.n)}</button><button class="sec" id="ws_show">Visa låsen</button><button class="bad fit" id="ws_del"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>Radera</button></div>`;
+  }
+  box.innerHTML = h; bindSel(ws, o);
+}
+function bindSel(ws, o) {
+  const on = (id, ev, fn) => { const e = $(id); if (e) e[ev] = fn; };
+  on("ws_n", "onchange", async () => { const v = $("ws_n").value.trim().slice(0, 40); if (!v) return toast("Skriv ett namn", 2000); o.n = v; await whSave(); });
+  if (ws.k === "r") {
+    const set = async (f, a, b, d) => { const v = num($("ws_" + f).value, a, b, null); if (v == null) return renderSel(); const old = o[f]; o[f] = f === "lv" ? Math.round(v) + pbOf(o) : v;
+      if (f === "lv" && o.lv < old) { const busy = [...S.pals.filter(x => x.loc && x.loc.k === "r" && x.loc.r === o.id && x.loc.l >= o.lv), ...S.wh.lp.filter(p => p.loc.k === "r" && p.loc.r === o.id && p.loc.l >= o.lv)]; if (busy.length) { o.lv = old; toast(`Det står ${busy.length} sak(er) på de översta planen – flytta dem först`, 4000); return renderSel(); } }
+      await whSave(); };
+    on("ws_L", "onchange", () => set("L", .3, 50)); on("ws_D", "onchange", () => set("D", .2, 5)); on("ws_lv", "onchange", () => set("lv", 1, 20)); on("ws_h", "onchange", () => set("h", .1, 5)); on("ws_ph", "onchange", () => set("ph", .5, 5));
+    on("ws_pb", "onchange", async () => { // pallplatser längst ner: hyllplanen och det som står på dem flyttas upp/ner lika många plan
+      const nb = +$("ws_pb").value, d = nb - pbOf(o); if (!d) return;
+      const its = [...S.pals.filter(x => x.loc && x.loc.k === "r" && x.loc.r === o.id).map(x => x.loc), ...S.wh.lp.filter(p => p.loc.k === "r" && p.loc.r === o.id).map(p => p.loc)];
+      if (d < 0 && its.some(l => l.l < -d)) { toast("Det står något på pallplatserna som tas bort – flytta det först", 4000); return renderSel(); }
+      if (o.lv + d > 20) { toast("Högst 20 plan totalt", 3000); return renderSel(); }
+      its.forEach(l => l.l += d); o.lv += d; o.pb = nb; if (nb && !o.ph) o.ph = 1.4; await whSave(); });
+    on("ws_k", "onchange", async () => { o.k = $("ws_k").value; if (o.k === "p") o.pb = 0; if (o.k === "p" && o.h < 1) { o.h = 1.6; o.D = Math.max(o.D, 1.1); o.L = Math.max(o.L, 2.7); o.lv = Math.min(o.lv, Math.max(3, ...S.pals.filter(x => x.loc && x.loc.k === "r" && x.loc.r === o.id).map(x => x.loc.l + 1))); } await whSave(); });
+    on("ws_rot", "onclick", async () => { o.a = (o.a + 90) % 360; const f = rackFp(o); o.x = clamp(o.x, f.w / 2, Math.max(f.w / 2, S.wh.hw - f.w / 2)); o.y = clamp(o.y, f.h / 2, Math.max(f.h / 2, S.wh.hd - f.h / 2)); await whSave(); });
+    on("ws_del", "onclick", () => delRack(o));
+  } else if (ws.k === "lp") {
+    const kr = async d => { o.kr = clamp(o.kr + d, 0, 10); await whSave(); };
+    on("ws_km", "onclick", () => kr(-1)); on("ws_kp", "onclick", () => kr(1));
+    on("ws_rot", "onclick", async () => { o.loc.a = o.loc.a ? 0 : 90; await whSave(); });
+    on("ws_at", "onchange", async () => { const v = $("ws_at").value; if (v === "f") { const [x, y] = findSpot(EUR.w, EUR.d); o.loc = { k: "f", x, y, a: 0 }; } else { const l = keyLoc(v); o.loc = l; o.o = maxO(l); } await whSave(); });
+    on("ws_del", "onclick", () => delLp(o));
+  } else {
+    const k = kOf(o.id);
+    on("ws_s", "onchange", async () => { const v = $("ws_s").value; if (v === "x") return;
+      if (v === "c") { const t = await dialog({ title: "Backens mått", text: "Bredd × djup × höjd i millimeter, t.ex. 600 × 400 × 220.", yes: "Spara", value: boxS(o).map(mm).join(" × ") }); const n = t ? (t.match(/\d+/g) || []).map(Number) : []; if (n.length !== 3 || n.some(x => x < 50 || x > 3000)) { if (t != null) toast("Skriv tre mått i mm (50–3000)", 3000); return renderSel(); } o.s = n.map(x => x / 1000); }
+      else o.s = BOXES[+v].slice(); await whSave(); });
+    on("ws_at", "onchange", async () => { const l = keyLoc($("ws_at").value); if (l) { o.loc = l; o.o = maxO(l); } else { delete o.loc; delete o.o; } await whSave(); });
+    const shift = async dir => { const sb = sibs(o.loc).sort((a, b) => (a.d.o || 0) - (b.d.o || 0)); sb.forEach((b, i) => b.d.o = i); const i = sb.findIndex(b => b.d === o), j = i + dir; if (j < 0 || j >= sb.length) return toast(dir < 0 ? "Backen står redan först" : "Backen står redan sist", 1800); sb[i].d.o = j; sb[j].d.o = i; await whSave(); };
+    on("ws_up", "onclick", () => shift(-1)); on("ws_dn", "onclick", () => shift(1));
+    on("ws_scan", "onclick", async () => { if (!(await ensureCap(k))) return; setAct(k); tab("scan"); window.scrollTo({ top: 0, behavior: "smooth" }); toast(`Nya lås skannas till ${o.n}${whTxt(k)}`, 3000); });
+    on("ws_show", "onclick", () => { S.pall = k - 1; S.hit = null; S.hitCell = null; S.floor = 0; tab("pal"); });
+    on("ws_del", "onclick", () => delPal(k));
+  }
+}
+$("whsel").onclick = e => { const b = e.target.closest("[data-addb],[data-addp],[data-b],[data-p]"); if (!b) return; treeClick(b); };
+async function delRack(r) {
+  const bx = S.pals.filter(d => d.loc && d.loc.k === "r" && d.loc.r === r.id), lp = S.wh.lp.filter(p => p.loc.k === "r" && p.loc.r === r.id);
+  if (!(await dialog({ err: 1, title: `Radera ${r.n}?`, text: `${r.n} tas bort för alla i projektet.${bx.length || lp.length ? ` ${bx.length} back(ar) på den blir utan plats i lagret och ${lp.length} pall(ar) ställs på golvet.` : ""} Inga lås raderas.`, yes: `Radera ${r.n}` }))) return;
+  S.wh.r = S.wh.r.filter(x => x !== r); bx.forEach(d => { delete d.loc; delete d.o; }); lp.forEach(p => { const [x, y] = findSpot(EUR.w, EUR.d); p.loc = { k: "f", x, y, a: 0 }; });
+  S.ws = null; if (await whSave()) toast(`${r.n} raderad`, 2500);
+}
+async function delLp(p) {
+  const bx = S.pals.filter(d => d.loc && d.loc.k === "p" && d.loc.p === p.id);
+  if (!(await dialog({ err: 1, title: `Radera ${p.n}?`, text: `${p.n} tas bort för alla i projektet.${bx.length ? ` ${bx.length} back(ar) på den blir utan plats i lagret.` : ""} Inga lås raderas.`, yes: `Radera ${p.n}` }))) return;
+  S.wh.lp = S.wh.lp.filter(x => x !== p); bx.forEach(d => { delete d.loc; delete d.o; }); S.ws = null; if (await whSave()) toast(`${p.n} raderad`, 2500);
+}
+
+// ----- lista över allt i lagret -----
+function renderTree() {
+  const q = $("whq").value.trim().toLowerCase(), cnt = lockCnt(), m = s => !q || String(s).toLowerCase().includes(q); let h = "";
+  const hitBoxes = l => sibs(l).some(b => m(b.d.n));
+  [...S.wh.r].sort((a, b) => a.n.localeCompare(b.n, "sv", { numeric: true })).forEach(r => {
+    let lv = ""; for (let l = r.lv - 1; l >= 0; l--) { const lps = S.wh.lp.filter(p => p.loc.k === "r" && p.loc.r === r.id && p.loc.l === l);
+      if (q && !m(r.n) && !hitBoxes({ k: "r", r: r.id, l }) && !lps.some(p => m(p.n) || hitBoxes({ k: "p", p: p.id }))) continue;
+      lv += `<div class="lvl"><span class="mut">Plan ${l + 1}</span><div class="chips">${levelItems(r, l, cnt) || '<span class="mut">Tomt</span>'}</div></div>`; }
+    if (lv || (!q || m(r.n))) h += `<div class="wtr"><div class="th"><button class="pl sm${isSel("r", r.id) ? "" : " sec"}" data-r="${r.id}">${esc(r.n)}</button><span class="mut">${RT[r.k]} · ${r.lv} plan · ${fm(r.L)} × ${fm(r.D)} m</span></div>${lv}</div>`;
+  });
+  const fl = S.wh.lp.filter(p => p.loc.k === "f" && (m(p.n) || hitBoxes({ k: "p", p: p.id })));
+  if (fl.length) h += `<div class="wtr"><div class="th"><b>Pallar på golvet</b></div>${fl.map(p => `<div class="lvl"><div class="chips">${chipLp(p)}${sibs({ k: "p", p: p.id }).sort((a, b) => (a.d.o || 0) - (b.d.o || 0)).map(b => chipBox(b.k, cnt)).join("")}</div></div>`).join("")}</div>`;
+  const un = S.pals.map((d, i) => i + 1).filter(k => !S.wlay.box.has(k) && m(palName(k)));
+  if (un.length) h += `<div class="wtr"><div class="th"><b>Utan plats i lagret</b><span class="mut">Välj en och ange var den står</span></div><div class="chips" style="margin-top:6px">${un.map(k => chipBox(k, cnt)).join("")}</div></div>`;
+  $("whtree").innerHTML = h || `<div class="mut" style="margin-top:8px">${q ? "Inget matchar sökningen." : "Lagret är tomt. Börja med att lägga till ett hyllställ, ett pallställ eller en pall."}</div>`;
+}
+$("whq").oninput = () => renderTree();
+async function treeClick(b) {
+  if (b.dataset.addb) return addBox(keyLoc(b.dataset.addb));
+  if (b.dataset.addp) { const [r, l] = b.dataset.addp.split(":").map(Number); return addLp({ k: "r", r, l }); }
+  S.ws = b.dataset.b ? { k: "b", id: +b.dataset.b } : b.dataset.p ? { k: "lp", id: +b.dataset.p } : { k: "r", id: +b.dataset.r };
+  S.wlay = whLayout(); const ws = S.ws, P = ws.k === "b" ? S.wlay.box.get(kOf(ws.id)) : ws.k === "lp" ? S.wlay.lp.get(ws.id) : rackById(ws.id); // 3D-vyn zoomar in på det valda
+  W3.t = P ? [P.x, P.z != null ? P.z : 0, P.y] : null; if (P) W3.zoom = Math.max(W3.zoom, 2.5);
+  renderWh(); $("whsel").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+$("whtree").onclick = e => { const b = e.target.closest("[data-b],[data-p],[data-r],[data-addb],[data-addp]"); if (b) treeClick(b); };
+
+// ----- 3D-vy av hela lagret -----
+const W3 = { ok: false, failed: false, yaw: .75, pitch: .8, zoom: 1, t: null, pick: [], w: 0, h: 0, raf: 0 };
+function w3init() {
+  if (W3.ok) return true; if (W3.failed || typeof THREE === "undefined") { W3.failed = true; return false; }
+  let r; try { r = new THREE.WebGLRenderer({ antialias: true, alpha: true }); } catch (e) { console.warn(e); W3.failed = true; return false; }
+  W3.r = r; r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); r.setClearColor(0x000000, 0);
+  const el = r.domElement; el.style.cssText = "display:block;width:100%;height:100%;touch-action:none;cursor:grab"; $("wh3").prepend(el);
+  W3.scene = new THREE.Scene(); W3.cam = new THREE.PerspectiveCamera(40, 1, .1, 3000);
+  W3.scene.add(new THREE.HemisphereLight(0xffffff, 0x8a93a6, .78)); const sun = new THREE.DirectionalLight(0xffffff, .5); sun.position.set(-.6, 2, 1.1); W3.scene.add(sun);
+  W3.g = new THREE.Group(); W3.scene.add(W3.g); W3.ray = new THREE.Raycaster(); W3.ndc = new THREE.Vector2(); W3.unit = new THREE.BoxGeometry(1, 1, 1);
+  const M = c => new THREE.MeshStandardMaterial({ color: c, roughness: .65, metalness: .05 });
+  W3.m = { floor: M(0xe4e8ee), floorD: M(0x262c34), up: M(0x3b6ea5), beam: M(0xe0832a), shelf: M(0xb9c0ca), wood: M(0xc8a06a), krage: M(0x9c7240), bE: M(0x7ea7e6), b: M(0x2463c9), bF: M(0x143f86), bad: M(0xc62828),
+    sel: new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: .4, emissive: 0xb45f00, emissiveIntensity: .45 }), line: new THREE.LineBasicMaterial({ color: 0x8a93a6, transparent: true, opacity: .35 }), wall: new THREE.LineBasicMaterial({ color: 0x1f2937 }) };
+  w3bind(el); W3.ok = true; new ResizeObserver(() => w3resize()).observe($("wh3")); w3resize(); return true;
+}
+function w3label(t, size) {
+  const c = document.createElement("canvas"), g = c.getContext("2d"), f = "600 40px system-ui,sans-serif"; g.font = f; const w = Math.ceil(g.measureText(t).width) + 28; c.width = w; c.height = 60;
+  g.font = f; g.fillStyle = "rgba(31,41,55,.86)"; rrect(g, 0, 0, w, 60, 14); g.fill(); g.fillStyle = "#fff"; g.textBaseline = "middle"; g.fillText(t, 14, 32);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false, transparent: true })); s.scale.set(size * w / 60, size, 1); s.renderOrder = 5; s.userData.own = true; return s;
+}
+function w3build() {
+  const g = W3.g; while (g.children.length) { const c = g.children[0]; g.remove(c); if (c.userData.own) { c.material.map?.dispose(); c.material.dispose(); } if (c.userData.geo) c.geometry.dispose(); }
+  W3.pick = []; const m = W3.m, lay = S.wlay, W = S.wh.hw, D = S.wh.hd, cnt = lockCnt(), ls = Math.max(.2, Math.max(W, D) / 60);
+  const add = (w, h, d, x, y, z, mt, a, ud) => { const o = new THREE.Mesh(W3.unit, mt); o.scale.set(w, h, d); o.position.set(x, y + h / 2, z); if (a) o.rotation.y = -a * Math.PI / 180; if (ud) { o.userData = { ...ud }; W3.pick.push(o); } g.add(o); return o; };
+  add(W, .02, D, W / 2, -.02, D / 2, darkQ.matches ? m.floorD : m.floor);
+  const pts = [], step = W * D > 4000 ? 5 : 1; for (let x = step; x < W; x += step) pts.push(x, .001, 0, x, .001, D); for (let y = step; y < D; y += step) pts.push(0, .001, y, W, .001, y);
+  const lg = new THREE.BufferGeometry(); lg.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3)); const ln = new THREE.LineSegments(lg, m.line); ln.userData.geo = true; g.add(ln);
+  const wg = new THREE.BufferGeometry(); wg.setAttribute("position", new THREE.Float32BufferAttribute([0, .01, 0, W, .01, 0, W, .01, 0, W, .01, D, W, .01, D, 0, .01, D, 0, .01, D, 0, .01, 0], 3)); const wl = new THREE.LineSegments(wg, m.wall); wl.userData.geo = true; g.add(wl);
+  S.wh.r.forEach(r => { const sel = isSel("r", r.id), ud = { k: "r", id: r.id }, nb = bays(r), top = rackTop(r);
+    for (let i = 0; i <= nb; i++) for (const v of [-r.D / 2 + .03, r.D / 2 - .03]) { const [x, y] = rot(r.x, r.y, r.a, -r.L / 2 + r.L * i / nb, v); add(.06, top, .06, x, 0, y, sel ? m.sel : m.up, r.a, ud); }
+    for (let l = 0; l < r.lv; l++) { const z = levelZ(r, l);
+      if (!palLv(r, l)) add(r.L, .025, r.D, r.x, z - .025, r.y, sel ? m.sel : m.shelf, r.a, ud);
+      else if (l > 0) for (const v of [-r.D / 2 + .03, r.D / 2 - .03]) { const [x, y] = rot(r.x, r.y, r.a, 0, v); add(r.L, .1, .05, x, z - .1, y, sel ? m.sel : m.beam, r.a, ud); } }
+    const lb = w3label(r.n, ls); lb.position.set(r.x, top + ls * .9, r.y); g.add(lb); });
+  lay.lp.forEach((P, id) => { const p = lpById(id); if (!p) return; const sel = isSel("lp", id), ud = { k: "lp", id };
+    add(EUR.w, EUR.h, EUR.d, P.x, P.z, P.y, sel ? m.sel : m.wood, P.a, ud);
+    for (let i = 0; i < p.kr; i++) { const z = P.z + EUR.h + i * KRAGE + .004;
+      for (const [w, d, u, v] of [[EUR.w, .02, 0, -EUR.d / 2 + .01], [EUR.w, .02, 0, EUR.d / 2 - .01], [.02, EUR.d - .04, -EUR.w / 2 + .01, 0], [.02, EUR.d - .04, EUR.w / 2 - .01, 0]]) { const [x, y] = rot(P.x, P.y, P.a, u, v); add(w, KRAGE - .008, d, x, z, y, sel ? m.sel : P.bover ? m.bad : m.krage, P.a, ud); } }
+    if (p.loc.k === "f") { const lb = w3label(p.n, ls * .8); lb.position.set(P.x, P.z + EUR.h + Math.max(p.kr * KRAGE, .25) + ls * .7, P.y); g.add(lb); } });
+  lay.box.forEach((B, k) => { const d = S.pals[k - 1], c = cnt[k] || 0, cap = capOf(k), sel = isSel("b", d.id);
+    const mt = sel ? m.sel : B.over ? m.bad : !c ? m.bE : cap && c >= cap ? m.bF : m.b; add(Math.max(.02, B.w - .01), B.h - .005, Math.max(.02, B.d - .01), B.x, B.z + .003, B.y, mt, B.a, { k: "b", id: d.id }); });
+}
+function w3cam() {
+  const W = S.wh.hw, D = S.wh.hd, t = W3.t || [W / 2, 0, D / 2], dist = Math.max(W, D, 4) * 1.15 / W3.zoom, cp = Math.cos(W3.pitch);
+  W3.cam.position.set(t[0] + dist * cp * Math.sin(W3.yaw), t[1] + dist * Math.sin(W3.pitch), t[2] + dist * cp * Math.cos(W3.yaw)); W3.cam.lookAt(t[0], t[1], t[2]);
+}
+function w3draw() { if (W3.raf || !W3.ok) return; W3.raf = requestAnimationFrame(() => { W3.raf = 0; if (!W3.w || $("wh3").classList.contains("hide")) return; w3cam(); W3.r.render(W3.scene, W3.cam); }); }
+function w3resize() { if (!W3.ok) return; const b = $("wh3"), w = b.clientWidth, h = b.clientHeight; if (!w || !h) return; W3.w = w; W3.h = h; W3.r.setSize(w, h, false); W3.cam.aspect = w / h; W3.cam.updateProjectionMatrix(); w3draw(); }
+function w3bind(el) {
+  const ptrs = new Map(); let moved = 0, pinch = 0;
+  el.addEventListener("pointerdown", e => { try { el.setPointerCapture(e.pointerId); } catch { } ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (ptrs.size === 1) moved = 0; else { moved = 99; const [a, b] = [...ptrs.values()]; pinch = Math.hypot(a.x - b.x, a.y - b.y); } });
+  el.addEventListener("pointermove", e => { const p = ptrs.get(e.pointerId); if (!p) return; const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
+    if (ptrs.size >= 2) { const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y); if (pinch) W3.zoom = clamp(W3.zoom * d / pinch, .5, 12); pinch = d; return w3draw(); }
+    moved += Math.abs(dx) + Math.abs(dy); if (moved < 6) return; W3.yaw -= dx * .008; W3.pitch = clamp(W3.pitch + dy * .006, .12, 1.52); w3draw(); });
+  const up = e => { const was = ptrs.has(e.pointerId); ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = 0;
+    if (e.type === "pointerup" && was && !ptrs.size && moved < 6) { const b = el.getBoundingClientRect(); W3.ndc.set((e.clientX - b.left) / b.width * 2 - 1, -(e.clientY - b.top) / b.height * 2 + 1); W3.ray.setFromCamera(W3.ndc, W3.cam);
+      const h = W3.ray.intersectObjects(W3.pick, false)[0]; S.ws = h ? { k: h.object.userData.k, id: h.object.userData.id } : null;
+      if (h) { const p = h.object.position; W3.t = [p.x, p.y, p.z]; W3.zoom = Math.max(W3.zoom, 2.2); } renderWh(); } };
+  el.addEventListener("pointerup", up); el.addEventListener("pointercancel", up);
+  el.addEventListener("wheel", e => { e.preventDefault(); W3.zoom = clamp(W3.zoom * (e.deltaY < 0 ? 1.12 : .89), .5, 12); w3draw(); }, { passive: false });
+  el.addEventListener("webglcontextlost", e => e.preventDefault()); el.addEventListener("webglcontextrestored", () => renderWh());
+}
+$("w3in").onclick = () => { W3.zoom = clamp(W3.zoom * 1.3, .5, 12); w3draw(); }; $("w3out").onclick = () => { W3.zoom = clamp(W3.zoom / 1.3, .5, 12); w3draw(); };
+$("w3rst").onclick = () => { W3.t = null; W3.zoom = 1; W3.yaw = .75; W3.pitch = .8; w3draw(); };
+
+// ----- huvudfunktion -----
+function renderWh() {
+  if (!S.code) return; renderLm();
+  if ($("vLag").classList.contains("hide")) return; // ritas när fliken öppnas
+  for (const id of ["hw", "hd"]) if (document.activeElement !== $(id)) $(id).value = fm(S.wh[id]);
+  S.wlay = whLayout(); const d3 = S.wview === "3d";
+  $("wv2").className = d3 ? "sec" : ""; $("wv3").className = d3 ? "" : "sec"; $("wplan").classList.toggle("hide", d3); $("w3lg").classList.toggle("hide", !d3);
+  const nb = S.pals.filter(d => d.loc).length, cnt = lockCnt(), nl = S.pals.reduce((n, d, i) => n + (d.loc ? cnt[i + 1] || 0 : 0), 0);
+  $("whhelp").textContent = `${fm(S.wh.hw)} × ${fm(S.wh.hd)} m · ${S.wh.r.length} hyllor/ställ · ${S.wh.lp.length} pallar · ${nb} backar · ${nl} lås i backarna. ` + (d3 ? "Dra för att rotera, nyp eller scrolla för att zooma. Tryck på en back, pall eller hylla för att välja den." : "");
+  renderPlan(); renderSel(); renderTree();
+  if (d3 && w3init()) { $("wh3").classList.remove("hide"); w3resize(); w3build(); w3draw(); }
+  else { $("wh3").classList.add("hide"); if (d3) { $("whhelp").textContent += " 3D kunde inte startas på den här enheten – planritningen visas i stället."; $("wplan").classList.remove("hide"); } }
 }
 
 show();
