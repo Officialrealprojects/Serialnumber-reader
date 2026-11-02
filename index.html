@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Inläsning - Smarta lås (V2)</title>
+<title>Inläsning - Smarta Lås</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%231f5fbf'/%3E%3Cg fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' transform='translate%284 4%29 scale%28.67%29'%3E%3Crect x='3' y='11' width='18' height='11' rx='2'/%3E%3Cpath d='M7 11V7a5 5 0 0 1 10 0v4'/%3E%3C/g%3E%3C/svg%3E">
 <meta name="theme-color" content="#1f2937">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -410,8 +410,20 @@ const esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;",
 function pos(slot) { if (slot == null || !S.pals.length) return null; const p = pallOf(slot); if (!p) return null; const d = palAt(p), r = slot % STRIDE; return { p, x: Math.floor(r / d.y) % d.x + 1, y: r % d.y + 1, z: Math.floor(r / (d.x * d.y)) + 1 }; }
 const slotOf = (p, z, x, y) => { const d = palAt(p); return base(p) + (z - 1) * d.x * d.y + (x - 1) * d.y + (y - 1); };
 const posTxt = p => p ? `${palName(p.p)}${whTxt(p.p)} · X${p.x} Y${p.y} V${p.z}` : "";
+async function fetchAllScans(cols, ordered) { // Supabase returnerar högst 1000 rader per förfrågan, så vi hämtar sida för sida tills allt är hämtat
+  const all = []; let from = 0;
+  for (;;) {
+    let q = db.from("scans").select(cols).eq("project_code", S.code);
+    if (ordered) q = q.order("scanned_at", { ascending: false }).order("id", { ascending: false });
+    const { data, error } = await q.range(from, from + 999);
+    if (error) return { data: null, error };
+    if (!data || !data.length) break;
+    all.push(...data); from += data.length;
+  }
+  return { data: all, error: null };
+}
 async function load(noMig) {
-  const [{ data, error }, { data: pj }] = await Promise.all([db.from("scans").select("*").eq("project_code", S.code).order("scanned_at", { ascending: false }), db.from("projects").select("dims").eq("code", S.code).maybeSingle()]);
+  const [{ data, error }, { data: pj }] = await Promise.all([fetchAllScans("*", true), db.from("projects").select("dims").eq("code", S.code).maybeSingle()]);
   if (error) return toast("Kunde inte hämta: " + error.message, 4000);
   const pp = parsePals(pj && pj.dims); S.pals = pp.pals; S.wh = pp.wh || WH0();
   if (pp.old && !noMig) { if (await migrate(pp.old, data)) return load(true); } // gammalt format: räkna om platserna en gång (bara ett försök per laddning)
@@ -538,7 +550,7 @@ async function newPal() { // ny pall: namn (förslag "Pall N") och storlek (för
 }
 // ---------- Platser på pallen: välja plats, flytta lås, plats för nästa lås ----------
 async function freshSlots() { // platserna direkt från databasen (så att borttagna lås från en annan telefon räknas som lediga)
-  try { const { data, error } = await db.from("scans").select("id,serial,slot").eq("project_code", S.code); if (!error && Array.isArray(data)) return data; } catch { }
+  try { const { data, error } = await fetchAllScans("id,serial,slot", false); if (!error && Array.isArray(data)) return data; } catch { }
   return S.scans.map(r => ({ id: r.id, serial: r.serial, slot: r.slot }));
 }
 S.next = null;
