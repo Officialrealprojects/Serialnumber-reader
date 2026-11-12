@@ -215,6 +215,15 @@ h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:7px}
       <div class="row"><label class="mut">X<input type="text" id="dx" inputmode="numeric" placeholder="X"></label><label class="mut">Y<input type="text" id="dy" inputmode="numeric" placeholder="Y"></label><label class="mut">Våningar<input type="text" id="dz" inputmode="numeric" placeholder="Våningar"></label></div>
       <div class="row"><button id="sdims">Spara pallen</button><button class="sec fit" id="newpall2"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Ny pall</span></button></div>
       <div class="row"><button class="bad fit hide" id="delpal"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>Radera</button></div></div>
+    <div class="card" id="impcard"><h4><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Importera lås från Excel</h4>
+      <div class="mut">Lägg in lås som redan är inskannade (t.ex. från en tidigare Excel-lista) på en viss pall och våning. Serienumren hämtas från kolumnen "Serienummer" (annars första kolumnen). Finns kolumnerna "Datum och tid" och "Skannad av" följer de med. Låsen läggs på lediga platser i vanlig ordning: X 1 utmed Y, sedan nästa X. Lås som redan finns i projektet hoppas över.</div>
+      <div class="row"><label class="mut" style="flex:2">Pall<select id="ipal"></select></label><label class="mut">Våning<select id="iplan"></select></label></div>
+      <div class="row"><button class="sec" id="iimp"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M9 13l2 2 4-4"/></svg>Välj Excel-fil och importera</button></div>
+      <input type="file" id="ifile" accept=".xlsx,.xls,.csv,.txt,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" class="hide"></div>
+    <div class="card" id="rmcard"><h4><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>Radera lås från våning eller pall</h4>
+      <div class="mut">Tar bort alla inskannade lås på en våning, eller på hela pallen. Pallen finns kvar och platserna blir lediga. Vill du ta bort själva pallen också, använd Radera i rutan ovanför. Exportera gärna listan först om du vill spara låsen.</div>
+      <div class="row"><label class="mut" style="flex:2">Pall<select id="rpal"></select></label><label class="mut">Våning<select id="rplan"></select></label></div>
+      <div class="row"><button class="bad" id="rmgo" disabled><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg><span>Radera låsen</span></button></div></div>
     <div class="card"><h4>Plats för nästa lås</h4>
       <div class="mut">Nya lås hamnar automatiskt på närmaste lediga plats (luckor efter borttagna lås fylls först). Vill du börja på en viss plats, välj den här: nästa lås hamnar där och följande lås fortsätter i ordning därifrån (t.ex. X 3, Y 3 → X 3, Y 4). Tryck Automatiskt för att gå tillbaka till första lediga plats.</div>
       <div class="row"><button class="sec" id="nxpick">Välj plats för nästa lås</button><button class="sec fit hide" id="nxclr">Automatiskt</button></div>
@@ -410,20 +419,8 @@ const esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;",
 function pos(slot) { if (slot == null || !S.pals.length) return null; const p = pallOf(slot); if (!p) return null; const d = palAt(p), r = slot % STRIDE; return { p, x: Math.floor(r / d.y) % d.x + 1, y: r % d.y + 1, z: Math.floor(r / (d.x * d.y)) + 1 }; }
 const slotOf = (p, z, x, y) => { const d = palAt(p); return base(p) + (z - 1) * d.x * d.y + (x - 1) * d.y + (y - 1); };
 const posTxt = p => p ? `${palName(p.p)}${whTxt(p.p)} · X${p.x} Y${p.y} V${p.z}` : "";
-async function fetchAllScans(cols, ordered) { // Supabase returnerar högst 1000 rader per förfrågan, så vi hämtar sida för sida tills allt är hämtat
-  const all = []; let from = 0;
-  for (;;) {
-    let q = db.from("scans").select(cols).eq("project_code", S.code);
-    if (ordered) q = q.order("scanned_at", { ascending: false }).order("id", { ascending: false });
-    const { data, error } = await q.range(from, from + 999);
-    if (error) return { data: null, error };
-    if (!data || !data.length) break;
-    all.push(...data); from += data.length;
-  }
-  return { data: all, error: null };
-}
 async function load(noMig) {
-  const [{ data, error }, { data: pj }] = await Promise.all([fetchAllScans("*", true), db.from("projects").select("dims").eq("code", S.code).maybeSingle()]);
+  const [{ data, error }, { data: pj }] = await Promise.all([db.from("scans").select("*").eq("project_code", S.code).order("scanned_at", { ascending: false }), db.from("projects").select("dims").eq("code", S.code).maybeSingle()]);
   if (error) return toast("Kunde inte hämta: " + error.message, 4000);
   const pp = parsePals(pj && pj.dims); S.pals = pp.pals; S.wh = pp.wh || WH0();
   if (pp.old && !noMig) { if (await migrate(pp.old, data)) return load(true); } // gammalt format: räkna om platserna en gång (bara ett försök per laddning)
@@ -550,7 +547,7 @@ async function newPal() { // ny pall: namn (förslag "Pall N") och storlek (för
 }
 // ---------- Platser på pallen: välja plats, flytta lås, plats för nästa lås ----------
 async function freshSlots() { // platserna direkt från databasen (så att borttagna lås från en annan telefon räknas som lediga)
-  try { const { data, error } = await fetchAllScans("id,serial,slot", false); if (!error && Array.isArray(data)) return data; } catch { }
+  try { const { data, error } = await db.from("scans").select("id,serial,slot").eq("project_code", S.code); if (!error && Array.isArray(data)) return data; } catch { }
   return S.scans.map(r => ({ id: r.id, serial: r.serial, slot: r.slot }));
 }
 S.next = null;
@@ -1267,6 +1264,104 @@ function dialog1(o) {
     $("mno").onclick = () => done(false); $("myes").onclick = () => done(true); v.onkeydown = ev => { if (ev.key === "Enter") done(true); };
   });
 }
+// ---------- Importera redan inskannade lås från Excel till vald pall och våning ----------
+S.ipal = null; S.iplan = null; // valen i importrutan (pallens id och våning)
+function renderImp() {
+  const ps = $("ipal"), pl = $("iplan"); if (!ps) return;
+  $("iimp").disabled = !S.pals.length;
+  if (!S.pals.length) { ps.innerHTML = '<option>Skapa en pall först</option>'; pl.innerHTML = ""; return; }
+  let k = S.ipal != null ? kOf(S.ipal) : 0; if (!k) k = (S.pall || 0) + 1; if (!S.pals[k - 1]) k = 1;
+  const used = new Set(S.scans.map(r => r.slot).filter(x => x != null));
+  ps.innerHTML = opts(S.pals.map((d, i) => [String(i + 1), `${palName(i + 1)}${whTxt(i + 1)}${d.u ? " · storlek väljs först" : ""}`]), String(k));
+  const d = palAt(k), nz = d.u ? 1 : d.z, z = clamp(S.iplan || 1, 1, nz);
+  pl.innerHTML = opts(Array.from({ length: nz }, (_, i) => { if (d.u) return ["1", "Väljs efter storleken"]; let f = 0; for (let x = 1; x <= d.x; x++) for (let y = 1; y <= d.y; y++) if (!used.has(slotOf(k, i + 1, x, y))) f++; return [String(i + 1), `Våning ${i + 1} · ${f} lediga av ${d.x * d.y}`]; }), String(z));
+}
+$("ipal").onchange = () => { const k = +$("ipal").value; S.ipal = S.pals[k - 1] ? S.pals[k - 1].id : null; S.iplan = 1; renderImp(); };
+$("iplan").onchange = () => { S.iplan = +$("iplan").value; };
+function importRows(ws) { // [{serial, at, by}] uppifrån och ner; datum och "skannad av" följer med om kolumnerna finns
+  const sers = sheetSerials(ws); if (!ws || !ws["!ref"]) return [];
+  const rg = XLSX.utils.decode_range(ws["!ref"]), txt = (r, c) => { const x = ws[XLSX.utils.encode_cell({ r, c })]; return x && x.v != null ? String(x.w ?? x.v).trim() : ""; };
+  let hr = -1, cS = -1, cD = -1, cB = -1;
+  for (let r = rg.s.r; r <= Math.min(rg.e.r, rg.s.r + 9) && hr < 0; r++) for (let c = rg.s.c; c <= rg.e.c; c++) { const t = txt(r, c).toLowerCase(); if (/serie|serial/.test(t)) { hr = r; cS = c; } }
+  if (hr >= 0) for (let c = rg.s.c; c <= rg.e.c; c++) { const t = txt(hr, c).toLowerCase(); if (cD < 0 && /datum|tid|date/.test(t)) cD = c; if (cB < 0 && /skannad av|av$|namn|scanned by/.test(t)) cB = c; }
+  if (cS < 0 || (cD < 0 && cB < 0)) return sers.map(serial => ({ serial }));
+  const out = [], seen = new Set(sers);
+  for (let r = hr + 1; r <= rg.e.r; r++) {
+    const x = ws[XLSX.utils.encode_cell({ r, c: cS })]; if (!x || x.v == null) continue;
+    const w = String(x.w ?? "").trim(), serial = x.t === "n" ? (/^\d+$/.test(w) ? w : String(x.v)) : String(x.v).trim(); if (!/\d/.test(serial) || !seen.has(serial)) continue;
+    let at = null; if (cD >= 0) { const dc = ws[XLSX.utils.encode_cell({ r, c: cD })]; if (dc && dc.v != null) { const t = dc.t === "n" ? new Date(Math.round((dc.v - 25569) * 864e5) + new Date().getTimezoneOffset() * 6e4) : new Date(String(dc.w ?? dc.v).trim().replace(" ", "T")); if (!isNaN(t) && t.getFullYear() > 2000 && t.getFullYear() < 2100) at = t.toISOString(); } }
+    out.push({ serial, at, by: cB >= 0 ? txt(r, cB).slice(0, 60) || null : null });
+  }
+  return out;
+}
+$("iimp").onclick = async () => {
+  if (!S.pals.length) return toast("Skapa en pall först", 2500);
+  const k = +$("ipal").value || 1; if (!(await ensureCap(k))) return; renderImp(); S.ipal = S.pals[k - 1].id; $("ifile").click();
+};
+$("ifile").onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  let rows; try { const wb = XLSX.read(await f.arrayBuffer(), { type: "array", raw: true }); rows = importRows(wb.Sheets[wb.SheetNames[0]]); } catch (err) { return toast("Kunde inte läsa filen: " + err.message, 4000); }
+  const k = kOf(S.ipal) || +$("ipal").value || 1, d = palAt(k), z0 = clamp(+$("iplan").value || 1, 1, d.z), name = palName(k);
+  // dubbletter: i filen och i projektet
+  const have = new Set(S.scans.map(r => r.serial)), inFile = new Set(); let dupP = 0, dupF = 0;
+  rows = rows.filter(r => { if (have.has(r.serial)) { dupP++; return false; } if (inFile.has(r.serial)) { dupF++; return false; } inFile.add(r.serial); return true; });
+  if (!rows.length) return toast(dupP || dupF ? `Inga nya lås – alla ${dupP + dupF} fanns redan` : "Hittade inga serienummer i filen", 4000);
+  const used = new Set((await freshSlots()).map(r => r.slot).filter(x => x != null));
+  const freeOn = z => { const a = []; for (let x = 1; x <= d.x; x++) for (let y = 1; y <= d.y; y++) { const sl = slotOf(k, z, x, y); if (!used.has(sl)) a.push(sl); } return a; };
+  let slots = freeOn(z0);
+  if (!slots.length && z0 >= d.z) return dialog({ err: 1, title: `Våning ${z0} är full`, text: `Det finns ingen ledig plats på våning ${z0} på ${name}. Välj en annan våning eller pall.`, yes: "OK" });
+  if (rows.length > slots.length) {
+    const up = []; for (let z = z0 + 1; z <= d.z; z++) up.push(...freeOn(z));
+    if (up.length && await dialog({ title: "Får inte plats på våningen", text: `Våning ${z0} på ${name} har ${slots.length} lediga platser men listan har ${rows.length} nya lås. Lägga resten på våning ${z0 + 1}${d.z > z0 + 1 ? `–${d.z}` : ""} (${up.length} lediga)?`, yes: "Ja, fortsätt uppåt" })) slots = slots.concat(up);
+    if (!slots.length) return toast("Inga lediga platser", 3000);
+  }
+  const n = Math.min(rows.length, slots.length), rest = rows.length - n, wl = rows.slice(0, n).filter(r => watched(r.serial)).length;
+  const first = pos(slots[0]), last = pos(slots[n - 1]);
+  const ok = await dialog({ err: rest > 0 || wl > 0, title: `Importera ${n} lås till ${name}?`, text: [`${n} lås läggs på ${name}${whTxt(k)}, från X${first.x} Y${first.y} V${first.z} till X${last.x} Y${last.y} V${last.z}.`, rest && `${rest} lås får inte plats och importeras inte (första: ${rows[n].serial}).`, dupP && `${dupP} fanns redan i projektet och hoppas över.`, dupF && `${dupF} stod flera gånger i filen och tas bara med en gång.`, wl && `Obs: ${wl} av låsen finns på varningslistan.`].filter(Boolean).join(" "), yes: `Importera ${n} lås` });
+  if (!ok) return;
+  toast(`Importerar ${n} lås …`, 60000);
+  const recs = rows.slice(0, n).map((r, i) => ({ project_code: S.code, serial: r.serial, method: "Import", scanned_by: r.by || S.me, slot: slots[i], ...(r.at ? { scanned_at: r.at } : {}) }));
+  let done = 0, failed = [];
+  for (let i = 0; i < recs.length; i += 300) {
+    const part = recs.slice(i, i + 300); let { error } = await db.from("scans").insert(part);
+    if (!error) { done += part.length; continue; }
+    for (const r of part) { // någon annan hann ta en plats: lägg låset en och en, på nästa lediga plats på pallen
+      let res = await db.from("scans").insert(r);
+      for (let t = 0; res.error && res.error.code === "23505" && t < 3; t++) { const us = new Set((await freshSlots()).map(x => x.slot)); const nf = firstFree(us, k); if (nf == null || pallOf(nf) !== k) break; r.slot = nf; res = await db.from("scans").insert(r); }
+      if (res.error) failed.push(r.serial); else done++;
+    }
+  }
+  await load();
+  if (failed.length) dialog({ err: 1, title: `${done} av ${n} lås importerade`, text: `${failed.length} kunde inte sparas: ${failed.slice(0, 10).join(", ")}${failed.length > 10 ? " …" : ""}. Försök igen med samma fil – de som redan finns hoppas över.`, yes: "OK" });
+  else toast(`${done} lås importerade till ${name}, våning ${z0}${last.z !== z0 ? `–${last.z}` : ""}${rest ? ` · ${rest} fick inte plats` : ""}`, 4500);
+};
+// ---------- Radera alla lås på en våning eller en hel pall (pallen finns kvar) ----------
+S.rpal = null; S.rplan = 0; // 0 = alla våningar
+function rmRange(k, z) { const b = base(k), d = palAt(k); return z ? [b + (z - 1) * d.x * d.y, b + z * d.x * d.y] : [b, b + STRIDE]; }
+function renderRm() {
+  const ps = $("rpal"), pl = $("rplan"); if (!ps) return;
+  if (!S.pals.length) { ps.innerHTML = '<option>Inga pallar</option>'; pl.innerHTML = ""; $("rmgo").disabled = true; return; }
+  let k = S.rpal != null ? kOf(S.rpal) : 0; if (!k) k = (S.pall || 0) + 1; if (!S.pals[k - 1]) k = 1;
+  const cnt = (a, b) => S.scans.filter(r => r.slot != null && r.slot >= a && r.slot < b).length;
+  ps.innerHTML = opts(S.pals.map((d, i) => [String(i + 1), `${palName(i + 1)}${whTxt(i + 1)} · ${cnt(...rmRange(i + 1, 0))} lås`]), String(k));
+  const d = palAt(k), nz = d.u ? 0 : d.z, z = clamp(S.rplan || 0, 0, nz);
+  pl.innerHTML = opts([["0", `Hela ${palType(k) === "back" ? "backen" : "pallen"} · ${cnt(...rmRange(k, 0))} lås`], ...Array.from({ length: nz }, (_, i) => [String(i + 1), `Våning ${i + 1} · ${cnt(...rmRange(k, i + 1))} lås`])], String(z));
+  const n = cnt(...rmRange(k, z)); $("rmgo").disabled = !n; $("rmgo").lastChild.textContent = n ? `Radera ${n} lås` : "Inga lås att radera";
+}
+$("rpal").onchange = () => { const k = +$("rpal").value; S.rpal = S.pals[k - 1] ? S.pals[k - 1].id : null; S.rplan = 0; renderRm(); };
+$("rplan").onchange = () => { S.rplan = +$("rplan").value; renderRm(); };
+$("rmgo").onclick = async () => {
+  const k = +$("rpal").value, z = +$("rplan").value || 0; if (!S.pals[k - 1]) return;
+  const [a, b] = rmRange(k, z), rows = S.scans.filter(r => r.slot != null && r.slot >= a && r.slot < b), n = rows.length, name = palName(k), where = z ? `våning ${z} på ${name}` : `hela ${name}`;
+  if (!n) return toast("Det finns inga lås där", 2500);
+  if (!(await dialog({ err: 1, title: `Radera ${n} lås?`, text: `Alla ${n} inskannade lås på ${where} tas bort för alla i projektet, t.ex. ${rows.slice(0, 3).map(r => r.serial).join(", ")}${n > 3 ? " …" : ""}. ${name} finns kvar och platserna blir lediga.`, yes: `Radera ${n} lås` }))) return;
+  if (!(await dialog({ err: 1, title: "Är du helt säker?", text: `Det går inte att ångra. ${n} lås på ${where} raderas permanent.`, yes: "Ja, radera" }))) return;
+  const { error } = await db.from("scans").delete().eq("project_code", S.code).gte("slot", a).lt("slot", b); // även lås som någon precis lagt dit
+  if (error) return toast(hint(error), 5000);
+  if (S.next != null && S.next >= a && S.next < b) setNext(null); if (S.cursor != null && S.cursor >= a && S.cursor < b) setCursor(null);
+  rows.forEach(r => S.sel.delete(r.id)); S.rplan = 0;
+  toast(`${n} lås raderade från ${where}`, 3500); load();
+};
 // ---------- Pall/back: namn, typ, färg, storlek, radera ----------
 S.fc = null; // vald färg i formuläret (innan Spara)
 function renderPalForm() { // formuläret visar pallen/backen som visas i fliken
@@ -1638,7 +1733,7 @@ function renderMap() {
 }
 // ----- huvudfunktion -----
 function renderPall() {
-  renderPalForm(); renderMap();
+  renderPalForm(); renderMap(); renderImp(); renderRm();
   if ($("vPal").classList.contains("hide")) return; // ritas när fliken öppnas
   const box = $("palbox"), msg = $("palmsg");
   if (!S.dims) {
